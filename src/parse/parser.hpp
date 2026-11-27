@@ -23,6 +23,9 @@ private:
     NodePtr verb_node(NodeKind k);
 
     NodePtr statement();
+    NodePtr definition();
+    NodePtr clause();
+    NodePtr clause_body();
     NodePtr expr(bool train_ok = true);
     NodePtr strand();
     NodePtr atom();

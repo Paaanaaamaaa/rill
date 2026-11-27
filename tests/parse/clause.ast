@@ -1,0 +1,5 @@
+(def fact (clause (0) 1) (clause (n) (* n (juxt fact (- n 1)))))
+(def eval (clause (a "+" b) (+ a b)) (clause (a "/" 0) 0) (clause (_ _ _) 0))
+(def repl (clause ("") 0) (clause (line) (block (juxt calc line) (juxt repl line))))
+(def sq (clause (x) (* x x)))
+(>>! (juxt fact 20))

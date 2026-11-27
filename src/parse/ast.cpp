@@ -9,6 +9,24 @@ std::string dump(const Node& n) {
         case NodeKind::Str:
         case NodeKind::Name:
             return self;
+        case NodeKind::Def: {
+            std::string s = "(def " + self;
+            for (const auto& k : n.kids) s += " " + dump(*k);
+            return s + ")";
+        }
+        case NodeKind::Clause: {
+            std::string s = "(clause (";
+            for (size_t i = 0; i + 1 < n.kids.size(); ++i) {
+                if (i) s += " ";
+                s += dump(*n.kids[i]);
+            }
+            return s + ") " + dump(*n.kids.back()) + ")";
+        }
+        case NodeKind::Block: {
+            std::string s = "(block";
+            for (const auto& k : n.kids) s += " " + dump(*k);
+            return s + ")";
+        }
         case NodeKind::Verb:
             return self + std::string(n.adverb);
         case NodeKind::List: {

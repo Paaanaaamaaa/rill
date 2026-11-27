@@ -1,0 +1,4 @@
+(def g (clause (x) x))
+tests/parse/clause_bad.rl:1:9: error: expected '=>' after the patterns
+  f :: 1 2
+          ^

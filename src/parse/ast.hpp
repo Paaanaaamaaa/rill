@@ -7,7 +7,7 @@
 
 namespace rill {
 
-enum class NodeKind { Int, Str, Name, Bind, Monad, Dyad, Juxt, List, Verb, Train };
+enum class NodeKind { Int, Str, Name, Bind, Monad, Dyad, Juxt, List, Verb, Train, Def, Clause, Block };
 
 struct Node;
 using NodePtr = std::unique_ptr<Node>;

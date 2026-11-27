@@ -78,6 +78,8 @@ std::vector<NodePtr> Parser::parse() {
 
 NodePtr Parser::statement() {
     if (cur().kind == Tok::Indent) fail("unexpected indent, blocks are not parsed yet");
+    if (cur().kind == Tok::Ident && after().kind == Tok::Clause) return definition();
+    if (cur().kind == Tok::Clause) fail("this :: has no name above it");
     NodePtr s;
     Tok nk = after().kind;
     if (cur().kind == Tok::Ident &&
@@ -170,6 +172,55 @@ NodePtr Parser::list() {
     }
     expect(Tok::RBracket, "expected ']'");
     return l;
+}
+
+// name :: pats => body, then more clauses on indented lines
+NodePtr Parser::definition() {
+    Token name = take();
+    NodePtr def = node(NodeKind::Def, name);
+    def->kids.push_back(clause());
+    if (cur().kind == Tok::Newline && after().kind == Tok::Indent) {
+        take();
+        take();
+        while (true) {
+            def->kids.push_back(clause());
+            if (cur().kind == Tok::Newline) take();
+            if (cur().kind == Tok::Dedent) { take(); break; }
+        }
+    }
+    return def;
+}
+
+// patterns are only literals and names for now, the last kid is the body
+NodePtr Parser::clause() {
+    Token start = cur();
+    expect(Tok::Clause, "expected '::'");
+    NodePtr c = node(NodeKind::Clause, start);
+    while (true) {
+        Tok k = cur().kind;
+        if (k == Tok::IntLit) c->kids.push_back(node(NodeKind::Int, take()));
+        else if (k == Tok::StrLit) c->kids.push_back(node(NodeKind::Str, take()));
+        else if (k == Tok::Ident) c->kids.push_back(node(NodeKind::Name, take()));
+        else break;
+    }
+    expect(Tok::FatArrow, "expected '=>' after the patterns");
+    c->kids.push_back(clause_body());
+    return c;
+}
+
+NodePtr Parser::clause_body() {
+    if (cur().kind != Tok::Newline) return expr();
+    Token nl = take();
+    if (cur().kind != Tok::Indent) fail("expected an indented block");
+    take();
+    NodePtr b = node(NodeKind::Block, nl);
+    while (cur().kind != Tok::Dedent) {
+        if (cur().kind == Tok::Eof) fail("block was never closed");
+        if (cur().kind == Tok::Newline) { take(); continue; }
+        b->kids.push_back(statement());
+    }
+    take();
+    return b;
 }
 
 }  // namespace rill
