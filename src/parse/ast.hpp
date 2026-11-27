@@ -13,6 +13,12 @@ enum class NodeKind {
     Orbit, Isomorph, Fixpoint, Quiesce, Manifold, Lattice, Field
 };
 
+// what a name turned out to be, filled in by sema
+enum class Sym { None, Func, Val, Mut, Arg, Stream, Region, Type };
+
+// what a juxt turned out to be, filled in by sema
+enum class Shape { None, List, Call, CallStrand, Unknown };
+
 struct Node;
 using NodePtr = std::unique_ptr<Node>;
 
@@ -22,9 +28,13 @@ struct Node {
     std::string_view adverb;  // Monad/Dyad/Verb only, empty when there is none
     bool dots = false;        // List: written with ..
     bool has_end = false;     // List: last kid is the end of the range
+    Sym sym = Sym::None;      // Name
+    int arity = -1;           // Name/Def: -1 means any
+    Shape shape = Shape::None;  // Juxt
     std::vector<NodePtr> kids;
 };
 
-std::string dump(const Node& n);
+// resolved = print what sema found (name kinds, calls vs strands)
+std::string dump(const Node& n, bool resolved = false);
 
 }  // namespace rill

@@ -13,7 +13,8 @@ add_executable(rill
   src/lex/lexer.cpp
   src/lex/layout.cpp
   src/parse/ast.cpp
-  src/parse/parser.cpp)
+  src/parse/parser.cpp
+  src/sema/sema.cpp)
 
 target_include_directories(rill PRIVATE src)
 target_compile_options(rill PRIVATE -Wall -Wextra -Wpedantic)

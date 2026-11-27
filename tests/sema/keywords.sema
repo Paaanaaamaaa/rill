@@ -1,0 +1,8 @@
+(def sq (clause (x:arg) (* x:arg x:arg)))
+(orbit fib (strand 0 1) (strand a:arg b:arg) (strand b:arg (+ a:arg b:arg)))
+(>>! (+/ (# 10 fib:stream)))
+(manifold scratch:region 65536 (block (<~ buf:val 5) (>>! buf:val)))
+(<~ r:val (fixpoint (call sq:fn 1)))
+(lattice packet (ver 3) (len 64))
+(<~ n:val 3)
+(<~ msg:val (?| n:val (arm (0) "zero") (arm (k:arg) k:arg)))

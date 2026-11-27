@@ -23,5 +23,6 @@ check() {
 [ "$1" = "--update" ] && update=1
 check run --tokens tokens
 check parse --ast ast
+check sema --sema sema
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]

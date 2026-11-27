@@ -5,11 +5,12 @@
 #include "lex/layout.hpp"
 #include "lex/lexer.hpp"
 #include "parse/parser.hpp"
+#include "sema/sema.hpp"
 
 int main(int argc, char** argv) {
     std::string mode = argc == 3 ? argv[1] : "";
-    if (mode != "--tokens" && mode != "--ast") {
-        std::cerr << "usage: rill --tokens|--ast <file.rl>\n";
+    if (mode != "--tokens" && mode != "--ast" && mode != "--sema") {
+        std::cerr << "usage: rill --tokens|--ast|--sema <file.rl>\n";
         return 2;
     }
     rill::Source src;
@@ -34,7 +35,10 @@ int main(int argc, char** argv) {
         return 1;
     }
     auto tree = rill::Parser(toks, diags).parse();
-    for (const auto& n : tree) std::cout << rill::dump(*n) << '\n';
+    // a tree with parse errors in it would only cause fake sema errors
+    bool sema = mode == "--sema";
+    if (sema && !diags.any()) rill::analyze(tree, diags);
+    for (const auto& n : tree) std::cout << rill::dump(*n, sema) << '\n';
     diags.print(src, std::cerr);
     return diags.any() ? 1 : 0;
 }
