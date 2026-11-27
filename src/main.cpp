@@ -2,12 +2,14 @@
 #include <string>
 #include "common/diag.hpp"
 #include "common/source.hpp"
-#include "lex/lexer.hpp"
 #include "lex/layout.hpp"
+#include "lex/lexer.hpp"
+#include "parse/parser.hpp"
 
 int main(int argc, char** argv) {
-    if (argc != 3 || std::string(argv[1]) != "--tokens") {
-        std::cerr << "usage: rill --tokens <file.rl>\n";
+    std::string mode = argc == 3 ? argv[1] : "";
+    if (mode != "--tokens" && mode != "--ast") {
+        std::cerr << "usage: rill --tokens|--ast <file.rl>\n";
         return 2;
     }
     rill::Source src;
@@ -17,9 +19,22 @@ int main(int argc, char** argv) {
     }
     rill::Diagnostics diags;
     auto toks = rill::apply_layout(rill::Lexer(src, diags).run(), diags);
-    for (const auto& t : toks)
-        std::cout << t.line << ':' << t.col << "\t" << rill::tok_name(t.kind)
-                  << "\t" << (t.kind == rill::Tok::Newline ? "\\n" : std::string(t.text)) << '\n';
+
+    if (mode == "--tokens") {
+        for (const auto& t : toks)
+            std::cout << t.line << ':' << t.col << "\t" << rill::tok_name(t.kind)
+                      << "\t" << (t.kind == rill::Tok::Newline ? "\\n" : std::string(t.text)) << '\n';
+        diags.print(src, std::cerr);
+        return diags.any() ? 1 : 0;
+    }
+
+    // no point parsing a file the lexer already rejected
+    if (diags.any()) {
+        diags.print(src, std::cerr);
+        return 1;
+    }
+    auto tree = rill::Parser(toks, diags).parse();
+    for (const auto& n : tree) std::cout << rill::dump(*n) << '\n';
     diags.print(src, std::cerr);
     return diags.any() ? 1 : 0;
 }

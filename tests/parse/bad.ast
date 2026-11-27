@@ -1,0 +1,7 @@
+(<~ c 7)
+tests/parse/bad.rl:1:5: error: expected an expression
+  a <~
+      ^
+tests/parse/bad.rl:2:9: error: expected an expression
+  b <~ 5 +
+          ^

@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
-# Runs every tests/run/*.rl through `rill --tokens` and diffs against its .tokens golden file.
-# To accept new output after a deliberate lexer change: tools/run_tests.sh --update
+# tests/run/*.rl are checked with --tokens against .tokens
+# tests/parse/*.rl are checked with --ast against .ast
+# --update rewrites the golden files from current output, read the diff before committing
 cd "$(dirname "$0")/.." || exit 1
 bin=build/rill
 pass=0; fail=0
-for src in tests/run/*.rl; do
-    golden="${src%.rl}.tokens"
-    if [ "$1" = "--update" ]; then "$bin" --tokens "$src" > "$golden" 2>&1; continue; fi
-    if diff -u "$golden" <("$bin" --tokens "$src" 2>&1) > /dev/null; then
-        pass=$((pass+1))
-    else
-        fail=$((fail+1)); echo "FAIL: $src"
-        diff -u "$golden" <("$bin" --tokens "$src" 2>&1) | head -20
-    fi
-done
+
+check() {
+    for src in tests/$1/*.rl; do
+        golden="${src%.rl}.$3"
+        actual=$("$bin" "$2" "$src" 2>&1)
+        if [ "$update" = 1 ]; then printf '%s\n' "$actual" > "$golden"; continue; fi
+        if diff -u "$golden" <(printf '%s\n' "$actual") > /dev/null; then
+            pass=$((pass+1))
+        else
+            fail=$((fail+1)); echo "FAIL: $src"
+            diff -u "$golden" <(printf '%s\n' "$actual") | head -20
+        fi
+    done
+}
+
+[ "$1" = "--update" ] && update=1
+check run --tokens tokens
+check parse --ast ast
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
