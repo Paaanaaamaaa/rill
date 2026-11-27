@@ -1,0 +1,7 @@
+// KW(EnumName, "text")
+KW(Orbit,    "orbit")
+KW(Isomorph, "isomorph")
+KW(Fixpoint, "fixpoint")
+KW(Lattice,  "lattice")
+KW(Manifold, "manifold")
+KW(Quiesce,  "quiesce")
