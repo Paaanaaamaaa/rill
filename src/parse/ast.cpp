@@ -9,6 +9,8 @@ std::string dump(const Node& n) {
         case NodeKind::Str:
         case NodeKind::Name:
             return self;
+        case NodeKind::Verb:
+            return self + std::string(n.adverb);
         case NodeKind::List: {
             std::string s = "(list";
             size_t items = n.kids.size() - (n.has_end ? 1 : 0);
@@ -22,6 +24,7 @@ std::string dump(const Node& n) {
     }
     std::string s = "(";
     if (n.kind == NodeKind::Juxt) s += "juxt";
+    else if (n.kind == NodeKind::Train) s += "train";
     else s += self + std::string(n.adverb);
     for (const auto& k : n.kids) s += " " + dump(*k);
     return s + ")";

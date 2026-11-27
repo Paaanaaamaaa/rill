@@ -95,18 +95,31 @@ NodePtr Parser::statement() {
     return s;
 }
 
-// right to left: everything after a verb is its right argument
-NodePtr Parser::expr() {
+// train_ok is false on the right side of a dyad, a bare verb there makes no sense yet
+NodePtr Parser::expr(bool train_ok) {
     if (is_verb(cur().kind)) {
-        NodePtr m = verb_node(NodeKind::Monad);
-        m->kids.push_back(expr());
-        return m;
+        std::vector<NodePtr> vs;
+        while (is_verb(cur().kind)) vs.push_back(verb_node(NodeKind::Verb));
+        if (!starts_atom(cur().kind)) {
+            if (!train_ok) fail("expected an expression");
+            NodePtr t = node(NodeKind::Train, vs[0]->tok);
+            t->kids = std::move(vs);
+            return t;
+        }
+        NodePtr rest = expr(false);
+        // innermost is the rightmost verb
+        for (size_t k = vs.size(); k-- > 0;) {
+            vs[k]->kind = NodeKind::Monad;
+            vs[k]->kids.push_back(std::move(rest));
+            rest = std::move(vs[k]);
+        }
+        return rest;
     }
     NodePtr left = strand();
     if (is_verb(cur().kind)) {
         NodePtr d = verb_node(NodeKind::Dyad);
         d->kids.push_back(std::move(left));
-        d->kids.push_back(expr());
+        d->kids.push_back(expr(false));
         return d;
     }
     return left;

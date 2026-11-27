@@ -23,7 +23,7 @@ private:
     NodePtr verb_node(NodeKind k);
 
     NodePtr statement();
-    NodePtr expr();
+    NodePtr expr(bool train_ok = true);
     NodePtr strand();
     NodePtr atom();
     NodePtr list();

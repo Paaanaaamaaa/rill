@@ -1,0 +1,4 @@
+(<~ avg (train +/ % #))
+(>>! (juxt avg 1 2 3 4))
+(>>! (juxt (train +/ % #) 1 2 3 4))
+(<~ neg (train -))
