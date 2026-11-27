@@ -6,6 +6,8 @@ namespace rill {
 enum class Tok {
     Eof,
     Newline,
+    Indent,
+    Dedent,
     Ident,
     IntLit,
 #define OP(name, text) name,

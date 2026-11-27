@@ -10,7 +10,8 @@ add_executable(rill
   src/common/source.cpp
   src/common/diag.cpp
   src/lex/token.cpp
-  src/lex/lexer.cpp)
+  src/lex/lexer.cpp
+  src/lex/layout.cpp)
 
 target_include_directories(rill PRIVATE src)
 target_compile_options(rill PRIVATE -Wall -Wextra -Wpedantic)

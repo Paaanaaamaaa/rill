@@ -3,6 +3,7 @@
 #include "common/diag.hpp"
 #include "common/source.hpp"
 #include "lex/lexer.hpp"
+#include "lex/layout.hpp"
 
 int main(int argc, char** argv) {
     if (argc != 3 || std::string(argv[1]) != "--tokens") {
@@ -15,7 +16,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     rill::Diagnostics diags;
-    auto toks = rill::Lexer(src, diags).run();
+    auto toks = rill::apply_layout(rill::Lexer(src, diags).run(), diags);
     for (const auto& t : toks)
         std::cout << t.line << ':' << t.col << "\t" << rill::tok_name(t.kind)
                   << "\t" << (t.kind == rill::Tok::Newline ? "\\n" : std::string(t.text)) << '\n';
