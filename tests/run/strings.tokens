@@ -1,0 +1,16 @@
+1:1	Print	>>!
+1:5	StrLit	"hello"
+1:12	Newline	\n
+2:1	Ident	a
+2:3	Bind	<~
+2:6	StrLit	"tab\there \"quoted\" \\ done"
+2:36	Newline	\n
+3:1	Ident	b
+3:3	Bind	<~
+3:6	StrLit	"not a %% comment"
+3:24	Newline	\n
+4:1	Ident	c
+4:3	Bind	<~
+4:6	StrLit	""
+4:8	Newline	\n
+5:1	Eof	

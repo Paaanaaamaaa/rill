@@ -16,6 +16,7 @@ private:
     char advance();
     Token make(Tok kind, size_t start, int line, int col) const;
     Token number();
+    Token string_lit();
     Token word();
     bool operator_at(Token& out);
 

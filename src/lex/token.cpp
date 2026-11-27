@@ -10,6 +10,7 @@ const char* tok_name(Tok t) {
         case Tok::Dedent:  return "Dedent";
         case Tok::Ident:   return "Ident";
         case Tok::IntLit:  return "IntLit";
+        case Tok::StrLit:  return "StrLit";
 #define OP(name, text) case Tok::name: return #name;
 #include "lex/operators.def"
 #undef OP

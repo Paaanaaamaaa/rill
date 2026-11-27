@@ -65,6 +65,32 @@ Token Lexer::number() {
     return make(Tok::IntLit, start, l, c);
 }
 
+Token Lexer::string_lit() {
+    size_t start = pos_;
+    int l = line_, c = col_;
+    advance();
+    while (pos_ < src_.text.size() && peek() != '"' && peek() != '\n') {
+        if (peek() == '\\') {
+            char e = peek(1);
+            if (e == 'n' || e == 't' || e == '"' || e == '\\' || e == '0') {
+                advance(); advance();
+                continue;
+            }
+            diags_.error(line_, col_, 2, "unknown escape in string");
+            advance();
+            if (peek() != '\n' && pos_ < src_.text.size()) advance();
+            continue;
+        }
+        advance();
+    }
+    // strings stop at the end of the line, multiline strings can wait
+    if (peek() != '"')
+        diags_.error(l, c, static_cast<int>(pos_ - start), "string is not closed");
+    else
+        advance();
+    return make(Tok::StrLit, start, l, c);
+}
+
 Token Lexer::word() {
     size_t start = pos_;
     int l = line_, c = col_;
@@ -108,6 +134,7 @@ std::vector<Token> Lexer::run() {
             out.push_back(make(Tok::Newline, start, l, col));
             continue;
         }
+        if (c == '"') { out.push_back(string_lit()); continue; }
         if (is_digit(c)) { out.push_back(number()); continue; }
         if (is_word_start(c)) { out.push_back(word()); continue; }
         Token t;
