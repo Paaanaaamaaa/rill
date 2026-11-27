@@ -6,12 +6,12 @@
 
 int main(int argc, char** argv) {
     if (argc != 3 || std::string(argv[1]) != "--tokens") {
-        std::cerr << "usage: rillc --tokens <file.rl>\n";
+        std::cerr << "usage: rill --tokens <file.rl>\n";
         return 2;
     }
     rill::Source src;
     if (!rill::Source::load(argv[2], src)) {
-        std::cerr << "rillc: cannot read " << argv[2] << '\n';
+        std::cerr << "rill: cannot read " << argv[2] << '\n';
         return 1;
     }
     rill::Diagnostics diags;

@@ -1,33 +1,4 @@
 // OP(EnumName, "text")
-// Order doesn't matter cause the lexer sorts by length
-
-OP(BindMut,  "<~!")
-OP(Print,    ">>!")
-OP(Bind,     "<~")
-OP(Assign,   "~!")
-OP(Pipe,     "~>")
-OP(Clause,   "::")
-OP(FatArrow, "=>")
-OP(Match,    "?|")
-OP(Under,    "&.")
-OP(DotDot,   "..")
-OP(Power,    "**")
-OP(Shl,      "<<")
-OP(Shr,      ">>")
-
-OP(Plus,     "+")
-OP(Minus,    "-")
-OP(Star,     "*")
-OP(Slash,    "/")
-OP(Percent,  "%")
-OP(Hash,     "#")
-OP(Tilde,    "~")
-OP(Caret,    "^")
-OP(Bang,     "!")
-OP(Lt,       "<")
-OP(Gt,       ">")
-OP(Eq,       "=")
-OP(Amp,      "&")// OP(EnumName, "text")
 // Order doesn't matter: the lexer sorts by length so the longest match wins.
 
 OP(BindMut,  "<~!")
