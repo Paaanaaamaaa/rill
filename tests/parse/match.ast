@@ -1,0 +1,4 @@
+(<~ a (?| n (arm (0) "zero") (arm (_) "other")))
+(<~ b (?| (> n 9) (arm (1) "big") (arm (_) "small")))
+(<~ sign (?| x (arm (0) 0) (arm (_) 1)))
+(<~ c 7)

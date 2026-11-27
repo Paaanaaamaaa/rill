@@ -21,6 +21,8 @@ bool starts_atom(Tok k) {
            k == Tok::LParen || k == Tok::LBracket;
 }
 
+bool prefix_kw(Tok k) { return k == Tok::KwQuiesce || k == Tok::KwFixpoint; }
+
 }  // namespace
 
 Token Parser::take() {
@@ -37,6 +39,12 @@ void Parser::fail(const char* msg) {
 void Parser::expect(Tok kind, const char* msg) {
     if (cur().kind != kind) fail(msg);
     take();
+}
+
+void Parser::end_line() {
+    if (ate_newline_) { ate_newline_ = false; return; }
+    if (cur().kind != Tok::Newline && cur().kind != Tok::Eof)
+        fail("did not expect this here");
 }
 
 NodePtr Parser::node(NodeKind k, const Token& t) {
@@ -69,6 +77,7 @@ std::vector<NodePtr> Parser::parse() {
             }
             out.push_back(statement());
         } catch (Abort&) {
+            ate_newline_ = false;
             // resync at the end of the line
             while (cur().kind != Tok::Newline && cur().kind != Tok::Eof) take();
         }
@@ -78,7 +87,14 @@ std::vector<NodePtr> Parser::parse() {
 
 NodePtr Parser::statement() {
     if (cur().kind == Tok::Indent) fail("unexpected indent, blocks are not parsed yet");
-    if (cur().kind == Tok::Ident && after().kind == Tok::Clause) return definition();
+    switch (cur().kind) {
+        case Tok::KwOrbit:    return orbit();
+        case Tok::KwIsomorph: return isomorph();
+        case Tok::KwLattice:  return lattice();
+        case Tok::KwManifold: return manifold();
+        default: break;
+    }
+    if (cur().kind == Tok::Ident && after().kind == Tok::Clause) return definition(NodeKind::Def);
     if (cur().kind == Tok::Clause) fail("this :: has no name above it");
     NodePtr s;
     Tok nk = after().kind;
@@ -92,17 +108,22 @@ NodePtr Parser::statement() {
     } else {
         s = expr();
     }
-    if (cur().kind != Tok::Newline && cur().kind != Tok::Eof)
-        fail("did not expect this here");
+    end_line();
     return s;
 }
 
 // train_ok is false on the right side of a dyad, a bare verb there makes no sense yet
 NodePtr Parser::expr(bool train_ok) {
+    if (prefix_kw(cur().kind)) {
+        Tok k = cur().kind;
+        NodePtr n = node(k == Tok::KwQuiesce ? NodeKind::Quiesce : NodeKind::Fixpoint, take());
+        n->kids.push_back(expr(false));
+        return n;
+    }
     if (is_verb(cur().kind)) {
         std::vector<NodePtr> vs;
         while (is_verb(cur().kind)) vs.push_back(verb_node(NodeKind::Verb));
-        if (!starts_atom(cur().kind)) {
+        if (!starts_atom(cur().kind) && !prefix_kw(cur().kind)) {
             if (!train_ok) fail("expected an expression");
             NodePtr t = node(NodeKind::Train, vs[0]->tok);
             t->kids = std::move(vs);
@@ -118,6 +139,8 @@ NodePtr Parser::expr(bool train_ok) {
         return rest;
     }
     NodePtr left = strand();
+    // ?| grabs the noun right before it, same as every other verb
+    if (cur().kind == Tok::Match) return match(std::move(left));
     if (is_verb(cur().kind)) {
         NodePtr d = verb_node(NodeKind::Dyad);
         d->kids.push_back(std::move(left));
@@ -174,10 +197,21 @@ NodePtr Parser::list() {
     return l;
 }
 
+// literals and names only for now
+void Parser::patterns(Node& into) {
+    while (true) {
+        Tok k = cur().kind;
+        if (k == Tok::IntLit) into.kids.push_back(node(NodeKind::Int, take()));
+        else if (k == Tok::StrLit) into.kids.push_back(node(NodeKind::Str, take()));
+        else if (k == Tok::Ident) into.kids.push_back(node(NodeKind::Name, take()));
+        else break;
+    }
+}
+
 // name :: pats => body, then more clauses on indented lines
-NodePtr Parser::definition() {
+NodePtr Parser::definition(NodeKind kind) {
     Token name = take();
-    NodePtr def = node(NodeKind::Def, name);
+    NodePtr def = node(kind, name);
     def->kids.push_back(clause());
     if (cur().kind == Tok::Newline && after().kind == Tok::Indent) {
         take();
@@ -188,21 +222,15 @@ NodePtr Parser::definition() {
             if (cur().kind == Tok::Dedent) { take(); break; }
         }
     }
+    ate_newline_ = false;
     return def;
 }
 
-// patterns are only literals and names for now, the last kid is the body
 NodePtr Parser::clause() {
     Token start = cur();
     expect(Tok::Clause, "expected '::'");
     NodePtr c = node(NodeKind::Clause, start);
-    while (true) {
-        Tok k = cur().kind;
-        if (k == Tok::IntLit) c->kids.push_back(node(NodeKind::Int, take()));
-        else if (k == Tok::StrLit) c->kids.push_back(node(NodeKind::Str, take()));
-        else if (k == Tok::Ident) c->kids.push_back(node(NodeKind::Name, take()));
-        else break;
-    }
+    patterns(*c);
     expect(Tok::FatArrow, "expected '=>' after the patterns");
     c->kids.push_back(clause_body());
     return c;
@@ -221,6 +249,103 @@ NodePtr Parser::clause_body() {
     }
     take();
     return b;
+}
+
+// subject ?| pats => body | pats => body
+// more arms can go on following lines starting with |
+NodePtr Parser::match(NodePtr subject) {
+    NodePtr m = node(NodeKind::Match, take());
+    m->kids.push_back(std::move(subject));
+    bool indented = false;
+    while (true) {
+        NodePtr arm = node(NodeKind::Arm, cur());
+        patterns(*arm);
+        if (arm->kids.empty()) fail("expected a pattern");
+        expect(Tok::FatArrow, "expected '=>' after the patterns");
+        arm->kids.push_back(expr(false));
+        m->kids.push_back(std::move(arm));
+
+        if (cur().kind == Tok::Bar) { take(); continue; }
+        if (cur().kind == Tok::Newline && peek(1).kind == Tok::Indent && peek(2).kind == Tok::Bar) {
+            take(); take(); take();
+            indented = true;
+            continue;
+        }
+        if (cur().kind == Tok::Newline && peek(1).kind == Tok::Bar) {
+            take(); take();
+            continue;
+        }
+        break;
+    }
+    // we opened an indent for the | lines, so the matching dedent is ours
+    if (indented && cur().kind == Tok::Newline && peek(1).kind == Tok::Dedent) {
+        take(); take();
+        ate_newline_ = true;
+    }
+    return m;
+}
+
+// orbit name <~ seed => state => step
+// no idea yet what the three parts should be allowed to look like
+NodePtr Parser::orbit() {
+    take();
+    Token name = cur();
+    expect(Tok::Ident, "expected a name after orbit");
+    NodePtr o = node(NodeKind::Orbit, name);
+    expect(Tok::Bind, "expected '<~' after the orbit name");
+    o->kids.push_back(expr(false));
+    expect(Tok::FatArrow, "expected '=>' after the seed");
+    o->kids.push_back(expr(false));
+    expect(Tok::FatArrow, "expected '=>' after the state names");
+    o->kids.push_back(expr(false));
+    end_line();
+    return o;
+}
+
+NodePtr Parser::isomorph() {
+    take();
+    if (cur().kind != Tok::Ident || after().kind != Tok::Clause)
+        fail("expected 'name ::' after isomorph");
+    return definition(NodeKind::Isomorph);
+}
+
+// lattice name, then indented lines of  field : width
+NodePtr Parser::lattice() {
+    take();
+    Token name = cur();
+    expect(Tok::Ident, "expected a name after lattice");
+    NodePtr l = node(NodeKind::Lattice, name);
+    expect(Tok::Newline, "expected the fields on indented lines");
+    expect(Tok::Indent, "expected an indented list of fields");
+    while (cur().kind != Tok::Dedent) {
+        if (cur().kind == Tok::Eof) fail("lattice was never closed");
+        if (cur().kind == Tok::Newline) { take(); continue; }
+        Token f = cur();
+        expect(Tok::Ident, "expected a field name");
+        expect(Tok::Colon, "expected ':' after the field name");
+        NodePtr fld = node(NodeKind::Field, f);
+        Token w = cur();
+        expect(Tok::IntLit, "expected a bit width");
+        fld->kids.push_back(node(NodeKind::Int, w));
+        l->kids.push_back(std::move(fld));
+    }
+    take();
+    return l;
+}
+
+// manifold name size, then an indented block
+NodePtr Parser::manifold() {
+    take();
+    Token name = cur();
+    expect(Tok::Ident, "expected a name after manifold");
+    NodePtr m = node(NodeKind::Manifold, name);
+    m->kids.push_back(node(NodeKind::Name, name));
+    m->kids.push_back(expr(false));
+    NodePtr body = clause_body();
+    bool block = body->kind == NodeKind::Block;
+    m->kids.push_back(std::move(body));
+    if (!block) end_line();
+    return m;
 }
 
 }  // namespace rill

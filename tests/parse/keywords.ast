@@ -1,0 +1,7 @@
+(orbit fib (juxt 0 1) (juxt a b) (juxt b (+ a b)))
+(>>! (+/ (# 10 fib)))
+(quiesce 0)
+(<~ r (fixpoint (juxt f 1)))
+(manifold scratch 65536 (block (<~ buf 5) (>>! buf)))
+(lattice packet (ver 3) (len 64) (id 67))
+(isomorph flip (clause (a b) (juxt b a)))
