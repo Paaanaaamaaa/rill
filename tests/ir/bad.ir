@@ -1,0 +1,18 @@
+tests/ir/bad.rl:1:6: error: not lowered yet: lists and strands
+  a <~ 1 2 3
+       ^
+tests/ir/bad.rl:2:6: error: not lowered yet: this kind of expression
+  b <~ [1..]
+       ^
+tests/ir/bad.rl:3:6: error: not lowered yet: the adverb '/'
+  c <~ +/ a
+       ^
+tests/ir/bad.rl:8:6: error: not lowered yet: strings outside of >>!
+  s <~ "str"
+       ^^^^^
+tests/ir/bad.rl:9:8: error: not lowered yet: the verb '**' with two arguments
+  z <~ 2 ** 3
+         ^^
+tests/ir/bad.rl:7:15: error: not lowered yet: a function using a top-level value
+  g :: n => n + y
+                ^

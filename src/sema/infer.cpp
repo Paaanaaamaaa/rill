@@ -228,7 +228,27 @@ private:
         }
     }
 
+    // every expression goes through here so its final type can be copied onto the node
     int ex(Node& n) {
+        int t = ex_(n);
+        // a def gets its result type in def(), this one would overwrite it
+        if (n.kind != NodeKind::Def && n.kind != NodeKind::Isomorph) seen_.push_back({&n, t});
+        return t;
+    }
+
+    TySlot summarize(int t) {
+        const T& x = ts_[find(t)];
+        TySlot s;
+        switch (x.k) {
+            case K::Int:  s.k = TK::Int; s.sign = x.sign; s.width = x.width; break;
+            case K::Bool: s.k = TK::Bool; break;
+            case K::Str:  s.k = TK::Str; break;
+            default:      s.k = TK::Other; break;
+        }
+        return s;
+    }
+
+    int ex_(Node& n) {
         switch (n.kind) {
             case NodeKind::Int: {
                 int t = var(true);
@@ -468,8 +488,9 @@ private:
     void pattern(Node& p, int want) {
         int t;
         if (p.kind == NodeKind::Name) {
-            if (p.tok.text == "_") return;
+            if (p.tok.text == "_") { seen_.push_back({&p, want}); return; }
             t = ty_of(p.decl);
+            seen_.push_back({&p, t});
         } else {
             t = ex(p);
         }
@@ -480,6 +501,7 @@ private:
     void def(Node& n) {
         std::vector<int> sig = ts_[fns_.at(n.decl)].fn;
         int ret = sig.back();
+        seen_.push_back({&n, ret});
         for (auto& c : n.kids) {
             for (size_t i = 0; i + 1 < c->kids.size(); ++i) pattern(*c->kids[i], sig[i]);
             Node& body = *c->kids.back();
@@ -549,6 +571,7 @@ private:
     void finish() {
         for (size_t i = 0; i < ts_.size(); ++i)
             if (ts_[i].k == K::Var && ts_[i].link < 0) ts_[i].link = i64_;
+        for (auto& s : seen_) s.first->ty = summarize(s.second);
         for (const Lit& l : lits_) {
             const T& t = ts_[find(l.ty)];
             if (t.k != K::Int) continue;
@@ -563,6 +586,7 @@ private:
     std::unordered_map<int, int> decl_ty_;  // declaration id -> type
     std::unordered_map<int, int> fns_;      // declaration id of a def -> its Fn type
     std::vector<Lit> lits_;
+    std::vector<std::pair<Node*, int>> seen_;
     int i64_ = 0, any_ = 0, str_ = 0, bool_ = 0;
 };
 

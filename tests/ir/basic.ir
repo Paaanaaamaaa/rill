@@ -1,0 +1,28 @@
+fn main()
+b0:
+  v0 = const.i67 5
+  v1 = copy.i67 v0
+  v2 = const.i67 1
+  v3 = add.i67 v1, v2
+  v4 = copy.i67 v3
+  print.i67 v4
+  printstr s0
+  v5 = const.i67 3
+  v6 = gt.i67 v4, v5
+  v7 = copy.bool v6
+  print.bool v7
+  v8 = const.i64 1
+  v9 = copy.i64 v8
+  v10 = const.i64 2
+  v11 = add.i64 v9, v10
+  v9 = copy.i64 v11
+  print.i64 v9
+  v12 = neg.i67 v4
+  print.i67 v12
+  v13 = const.i64 0
+  exit v13
+b1:
+  v14 = const.i64 0
+  exit v14
+
+str s0 = "hello"

@@ -1,0 +1,69 @@
+fn main()
+b0:
+  v0 = const.i67 20
+  v1 = call fact(v0)
+  print.i67 v1
+  v2 = const.i64 7
+  v3 = call sq(v2)
+  print.i64 v3
+  v4 = const.i64 150
+  v5 = call isbig(v4)
+  print.bool v5
+  v6 = const.bool #t
+  v7 = const.bool #t
+  v8 = eq.bool v6, v7
+  br v8, b3, b2
+b1:
+  v14 = copy.i64 v10
+  print.i64 v14
+  v15 = const.i64 0
+  exit v15
+b2:
+  v11 = const.bool #f
+  v12 = eq.bool v6, v11
+  br v12, b5, b4
+b3:
+  v9 = const.i64 1
+  v10 = copy.i64 v9
+  jmp b1
+b4:
+  trap
+b5:
+  v13 = const.i64 0
+  v10 = copy.i64 v13
+  jmp b1
+
+fn fact(v0: i67) -> i67
+b0:
+  v1 = const.i67 0
+  v2 = eq.i67 v0, v1
+  br v2, b2, b1
+b1:
+  v4 = copy.i67 v0
+  v5 = const.i67 1
+  v6 = sub.i67 v4, v5
+  v7 = call fact(v6)
+  v8 = mul.i67 v4, v7
+  ret v8
+b2:
+  v3 = const.i67 1
+  ret v3
+b3:
+  trap
+
+fn sq(v0: i64) -> i64
+b0:
+  v1 = copy.i64 v0
+  v2 = mul.i64 v1, v1
+  ret v2
+b1:
+  trap
+
+fn isbig(v0: i64) -> bool
+b0:
+  v1 = copy.i64 v0
+  v2 = const.i64 100
+  v3 = gt.i64 v1, v2
+  ret v3
+b1:
+  trap

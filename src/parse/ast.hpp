@@ -20,6 +20,15 @@ enum class Sym { None, Func, Val, Mut, Arg, Stream, Region, Type };
 // what a juxt turned out to be, filled in by sema
 enum class Shape { None, List, Call, CallStrand, Unknown };
 
+// the resolved type of a node, filled in by infer, only for what lowering needs
+enum class TK { None, Int, Bool, Str, Other };
+
+struct TySlot {
+    TK k = TK::None;
+    bool sign = true;
+    int width = 0;
+};
+
 struct Node;
 using NodePtr = std::unique_ptr<Node>;
 
@@ -37,6 +46,7 @@ struct Node {
     bool annotated = false;   // Bind: written as  x : type <~ ...
     int tyform = 0;   // Name in a signature: 0 plain, 1 [t], 2 [t..]
     int annform = 0;  // Bind: the same thing for its annotation
+    TySlot ty;        // set by infer: literals, patterns, and the result of a def
     Token ann{};              // Bind: the type name
     std::vector<NodePtr> kids;
 };

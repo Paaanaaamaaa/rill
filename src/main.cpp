@@ -2,6 +2,7 @@
 #include <string>
 #include "common/diag.hpp"
 #include "common/source.hpp"
+#include "ir/lower.hpp"
 #include "lex/layout.hpp"
 #include "lex/lexer.hpp"
 #include "parse/parser.hpp"
@@ -10,8 +11,10 @@
 
 int main(int argc, char** argv) {
     std::string mode = argc == 3 ? argv[1] : "";
-    if (mode != "--tokens" && mode != "--ast" && mode != "--sema" && mode != "--types") {
-        std::cerr << "usage: rill --tokens|--ast|--sema|--types <file.rl>\n";
+    bool known = mode == "--tokens" || mode == "--ast" || mode == "--sema" ||
+                 mode == "--types" || mode == "--ir";
+    if (!known) {
+        std::cerr << "usage: rill --tokens|--ast|--sema|--types|--ir <file.rl>\n";
         return 2;
     }
     rill::Source src;
@@ -36,21 +39,26 @@ int main(int argc, char** argv) {
         return 1;
     }
     auto tree = rill::Parser(toks, diags).parse();
-    // a tree with parse errors in it would only cause fake sema errors
-    bool sema = mode == "--sema" || mode == "--types";
-    if (sema && !diags.any()) rill::analyze(tree, diags);
 
-    if (mode == "--types") {
-        if (!diags.any()) {
-            auto lines = rill::infer(tree, diags);
-            if (!diags.any())
-                for (const auto& l : lines) std::cout << l << '\n';
-        }
+    if (mode == "--ast" || mode == "--sema") {
+        // a tree with parse errors in it would only cause fake sema errors
+        if (mode == "--sema" && !diags.any()) rill::analyze(tree, diags);
+        for (const auto& n : tree) std::cout << rill::dump(*n, mode == "--sema") << '\n';
         diags.print(src, std::cerr);
         return diags.any() ? 1 : 0;
     }
 
-    for (const auto& n : tree) std::cout << rill::dump(*n, mode == "--sema") << '\n';
+    if (!diags.any()) rill::analyze(tree, diags);
+    std::vector<std::string> lines;
+    if (!diags.any()) lines = rill::infer(tree, diags);
+
+    if (mode == "--types") {
+        if (!diags.any())
+            for (const auto& l : lines) std::cout << l << '\n';
+    } else if (!diags.any()) {
+        rill::Module m = rill::lower(tree, diags);
+        if (!diags.any()) std::cout << rill::ir_dump(m);
+    }
     diags.print(src, std::cerr);
     return diags.any() ? 1 : 0;
 }

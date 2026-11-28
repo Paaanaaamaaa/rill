@@ -25,5 +25,6 @@ check run --tokens tokens
 check parse --ast ast
 check sema --sema sema
 check types --types types
+check ir --ir ir
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
