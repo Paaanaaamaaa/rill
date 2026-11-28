@@ -91,9 +91,9 @@ flowchart TD
     H --> I
     I --> J
 
-    style A fill:#e8f0fe,stroke:#4285f4,color:#174ea6
-    style J fill:#e6f4ea,stroke:#34a853,color:#137333
-    style G fill:#fef7e0,stroke:#f9ab00,color:#7f4f00
+    style A fill:#e8f0fe,color:#174ea6
+    style J fill:#e6f4ea,color:#137333
+    style G fill:#fef7e0,color:#7f4f00
 ```
 
 
