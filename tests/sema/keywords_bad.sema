@@ -2,18 +2,18 @@
 (orbit h (strand 1 2) (strand a:arg a:arg) a:arg)
 (lattice p (x 0) (x 3))
 (manifold m:region 0 (block (>>! nope)))
-tests/sema/keywords_bad.rl:1:12: error: the seed has 2 values but the state has 1 names
+tests/sema/keywords_bad.rill:1:12: error: the seed has 2 values but the state has 1 names
   orbit g <~ 1 2 => (a) => a
              ^
-tests/sema/keywords_bad.rl:2:22: error: 'a' is already defined here
+tests/sema/keywords_bad.rill:2:22: error: 'a' is already defined here
   orbit h <~ 1 2 => (a a) => a
                        ^
-tests/sema/keywords_bad.rl:4:9: error: bit width must be between 1 and 128
+tests/sema/keywords_bad.rill:4:9: error: bit width must be between 1 and 128
       x : 0
           ^
-tests/sema/keywords_bad.rl:5:5: error: field 'x' appears twice
+tests/sema/keywords_bad.rill:5:5: error: field 'x' appears twice
       x : 3
       ^
-tests/sema/keywords_bad.rl:7:9: error: unknown name 'nope'
+tests/sema/keywords_bad.rill:7:9: error: unknown name 'nope'
       >>! nope
           ^^^^

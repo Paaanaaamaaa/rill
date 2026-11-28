@@ -1,4 +1,4 @@
 (<~ b 4)
-tests/parse/train_bad.rl:1:11: error: expected an expression
+tests/parse/train_bad.rill:1:11: error: expected an expression
   a <~ 3 + #
             ^

@@ -13,6 +13,6 @@
 3:8	IntLit	3
 3:9	Newline	\n
 4:1	Eof	
-tests/run/layout_bad_dedent.rl:3:1: error: indentation does not match any outer block
+tests/run/layout_bad_dedent.rill:3:1: error: indentation does not match any outer block
     c <~ 3
   ^^^

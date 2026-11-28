@@ -1,15 +1,15 @@
-tests/types/annot_bad.rl:1:14: error: 'a' has type [i64] but the value is number
+tests/types/annot_bad.rill:1:14: error: 'a' has type [i64] but the value is number
   a : [i64] <~ 1
                ^
-tests/types/annot_bad.rl:2:14: error: 's' has type [i64] but the value is [number..]
+tests/types/annot_bad.rill:2:14: error: 's' has type [i64] but the value is [number..]
   s : [i64] <~ [1..]
                ^
-tests/types/annot_bad.rl:3:16: error: 'n' has type [i64..] but the value is [number]
+tests/types/annot_bad.rill:3:16: error: 'n' has type [i64..] but the value is [number]
   n : [i64..] <~ 1 2 3
                  ^
-tests/types/annot_bad.rl:7:9: error: 'sum' takes [i64] here, got [number..]
+tests/types/annot_bad.rill:7:9: error: 'sum' takes [i64] here, got [number..]
   >>! sum [1..]
           ^
-tests/types/annot_bad.rl:8:9: error: 'sum' takes [i64] here, got number
+tests/types/annot_bad.rill:8:9: error: 'sum' takes [i64] here, got number
   >>! sum 5
           ^

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# tests/<dir>/*.rl is run with a flag and compared with a golden file next to it
-# tests/exec/*.rl is compiled and run, stdout plus "exit: N" is compared with .out
+# tests/<dir>/*.rill is run with a flag and compared with a golden file next to it
+# tests/exec/*.rill is compiled and run, stdout plus "exit: N" is compared with .out
 # --update rewrites the golden files from current output, read the diff before committing
 cd "$(dirname "$0")/.." || exit 1
 bin=build/rill
@@ -20,20 +20,20 @@ compare() {
 }
 
 check() {
-    for src in tests/$1/*.rl; do
-        compare "$src" "${src%.rl}.$3" "$("$bin" "$2" "$src" 2>&1)"
+    for src in tests/$1/*.rill; do
+        compare "$src" "${src%.rill}.$3" "$("$bin" "$2" "$src" 2>&1)"
     done
 }
 
 run_exec() {
     tmp=$(mktemp -d)
-    for src in tests/exec/*.rl; do
+    for src in tests/exec/*.rill; do
         if "$bin" "$src" -o "$tmp/prog" > "$tmp/build.log" 2>&1; then
             actual=$("$tmp/prog" 2>&1; echo "exit: $?")
         else
             actual="build failed: $(cat "$tmp/build.log")"
         fi
-        compare "$src" "${src%.rl}.out" "$actual"
+        compare "$src" "${src%.rill}.out" "$actual"
     done
     rm -rf "$tmp"
 }

@@ -26,8 +26,8 @@ std::string sh_quote(const std::string& s) {
 }
 
 int usage() {
-    std::cerr << "usage: rill <file.rl> [-o out]\n"
-                 "       rill --tokens|--ast|--sema|--types|--ir|--asm <file.rl>\n";
+    std::cerr << "usage: rill <file.rill> [-o out]\n"
+                 "       rill --tokens|--ast|--sema|--types|--ir|--asm <file.rill>\n";
     return 2;
 }
 

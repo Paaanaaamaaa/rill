@@ -1,24 +1,24 @@
-tests/types/lists_bad.rl:3:6: error: can't fold an infinite stream, take some first, like 10#
+tests/types/lists_bad.rill:3:6: error: can't fold an infinite stream, take some first, like 10#
   t <~ +/ s
        ^
-tests/types/lists_bad.rl:4:6: error: a stream has no length, take some first, like 10#
+tests/types/lists_bad.rill:4:6: error: a stream has no length, take some first, like 10#
   u <~ # s
        ^
-tests/types/lists_bad.rl:5:8: error: '+' can't mix a list and a stream, take from the stream first
+tests/types/lists_bad.rill:5:8: error: '+' can't mix a list and a stream, take from the stream first
   v <~ s + a
          ^
-tests/types/lists_bad.rl:6:7: error: lists of lists are not supported yet
+tests/types/lists_bad.rill:6:7: error: lists of lists are not supported yet
   w <~ (1 2) (3 4)
         ^
-tests/types/lists_bad.rl:6:13: error: lists of lists are not supported yet
+tests/types/lists_bad.rill:6:13: error: lists of lists are not supported yet
   w <~ (1 2) (3 4)
               ^
-tests/types/lists_bad.rl:7:11: error: 'x' has type i8 but the value is [number]
+tests/types/lists_bad.rill:7:11: error: 'x' has type i8 but the value is [number]
   x : i8 <~ a
             ^
-tests/types/lists_bad.rl:8:6: error: a range needs numbers, got str
+tests/types/lists_bad.rill:8:6: error: a range needs numbers, got str
   y <~ ["a"..]
        ^
-tests/types/lists_bad.rl:9:8: error: '@' needs a list on the left, got number
+tests/types/lists_bad.rill:9:8: error: '@' needs a list on the left, got number
   z <~ 5 @ 1
          ^

@@ -6,21 +6,21 @@
 (def two (clause (a:arg b:arg) a:arg))
 (juxt two:fn 1)
 (<~ q:val _)
-tests/sema/bad.rl:2:1: error: 'a' is already defined here
+tests/sema/bad.rill:2:1: error: 'a' is already defined here
   a <~ 2
   ^
-tests/sema/bad.rl:3:6: error: unknown name 'zzz'
+tests/sema/bad.rill:3:6: error: unknown name 'zzz'
   b <~ zzz
        ^^^
-tests/sema/bad.rl:4:1: error: unknown name 'c'
+tests/sema/bad.rill:4:1: error: unknown name 'c'
   c ~! 3
   ^
-tests/sema/bad.rl:5:1: error: 'a' is not mutable, declare it with <~!
+tests/sema/bad.rill:5:1: error: 'a' is not mutable, declare it with <~!
   a ~! 4
   ^
-tests/sema/bad.rl:7:1: error: 'two' takes 2 arguments but got 1
+tests/sema/bad.rill:7:1: error: 'two' takes 2 arguments but got 1
   two 1
   ^^^
-tests/sema/bad.rl:8:6: error: '_' only works as a pattern
+tests/sema/bad.rill:8:6: error: '_' only works as a pattern
   q <~ _
        ^

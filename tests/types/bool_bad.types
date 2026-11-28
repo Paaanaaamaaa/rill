@@ -1,9 +1,9 @@
-tests/types/bool_bad.rl:1:11: error: 'e' has type i8 but the value is bool
+tests/types/bool_bad.rill:1:11: error: 'e' has type i8 but the value is bool
   e : i8 <~ #t
             ^^
-tests/types/bool_bad.rl:2:9: error: '+' needs both sides the same type, got bool and number
+tests/types/bool_bad.rill:2:9: error: '+' needs both sides the same type, got bool and number
   g <~ #t + 1
           ^
-tests/types/bool_bad.rl:3:11: error: this pattern is bool but the value is number
+tests/types/bool_bad.rill:3:11: error: this pattern is bool but the value is number
   h <~ 5 ?| #t => 1 | _ => 0
             ^^

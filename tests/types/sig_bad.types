@@ -1,12 +1,12 @@
-tests/types/sig_bad.rl:1:1: error: no definition of 'f' in this block
+tests/types/sig_bad.rill:1:1: error: no definition of 'f' in this block
   f : i64 => i64
   ^
-tests/types/sig_bad.rl:2:1: error: the signature has 2 types but 'g' takes 1
+tests/types/sig_bad.rill:2:1: error: the signature has 2 types but 'g' takes 1
   g : i64 i64 => i64
   ^
-tests/types/sig_bad.rl:5:5: error: bit width must be between 1 and 128
+tests/types/sig_bad.rill:5:5: error: bit width must be between 1 and 128
   k : i5000 => i64
       ^^^^^
-tests/types/sig_bad.rl:7:1: error: 'i5' is a type name, pick another name
+tests/types/sig_bad.rill:7:1: error: 'i5' is a type name, pick another name
   i5 <~ 3
   ^^

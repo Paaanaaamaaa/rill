@@ -7,9 +7,9 @@
 2:6	StrLit	"bad \q escape"
 2:21	Newline	\n
 3:1	Eof	
-tests/run/string_bad.rl:1:6: error: string is not closed
+tests/run/string_bad.rill:1:6: error: string is not closed
   a <~ "no end
        ^^^^^^^
-tests/run/string_bad.rl:2:11: error: unknown escape in string
+tests/run/string_bad.rill:2:11: error: unknown escape in string
   b <~ "bad \q escape"
             ^^

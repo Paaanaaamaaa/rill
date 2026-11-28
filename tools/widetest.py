@@ -77,7 +77,7 @@ def main():
     print("seed", seed)
     bad = checked = 0
     with tempfile.TemporaryDirectory() as d:
-        src_path, exe = os.path.join(d, "t.rl"), os.path.join(d, "t")
+        src_path, exe = os.path.join(d, "t.rill"), os.path.join(d, "t")
         for _ in range(rounds):
             for ty, w, signed in TYPES:
                 text, want = program(ty, w, signed)

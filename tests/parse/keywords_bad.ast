@@ -1,7 +1,7 @@
 (quiesce 0)
-tests/parse/keywords_bad.rl:1:7: error: expected a name after orbit
+tests/parse/keywords_bad.rill:1:7: error: expected a name after orbit
   orbit <~ 1
         ^^
-tests/parse/keywords_bad.rl:3:7: error: expected ':' after the field name
+tests/parse/keywords_bad.rill:3:7: error: expected ':' after the field name
       x 3
         ^
