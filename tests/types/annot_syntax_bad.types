@@ -1,0 +1,6 @@
+tests/types/annot_syntax_bad.rl:1:6: error: lists of lists are not supported yet
+  f : [[i64]] => i64
+       ^
+tests/types/annot_syntax_bad.rl:2:10: error: expected ']'
+  g : [i64 => i64
+           ^^

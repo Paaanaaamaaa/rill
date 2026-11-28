@@ -40,6 +40,8 @@ std::string dump(const Node& n, bool resolved) {
         case NodeKind::Str:
             return self;
         case NodeKind::Name:
+            if (n.tyform == 1) return "[" + self + "]";
+            if (n.tyform == 2) return "[" + self + "..]";
             if (resolved && n.sym != Sym::None) return self + ":" + sym_name(n.sym);
             return self;
         case NodeKind::Verb:
@@ -47,7 +49,7 @@ std::string dump(const Node& n, bool resolved) {
         case NodeKind::Bind:
             if (n.annotated)
                 return "(" + self + " " + dump(*n.kids[0], resolved) + " : " +
-                       std::string(n.ann.text) + " " + dump(*n.kids[1], resolved) + ")";
+                       (n.annform == 1 ? "[" + std::string(n.ann.text) + "]" : n.annform == 2 ? "[" + std::string(n.ann.text) + "..]" : std::string(n.ann.text)) + " " + dump(*n.kids[1], resolved) + ")";
             break;
         case NodeKind::Sig: {
             std::string s = "(sig " + self;

@@ -26,6 +26,7 @@ private:
 
     NodePtr statement();
     NodePtr annotated();
+    NodePtr type_ref();
     NodePtr definition(NodeKind kind);
     NodePtr clause();
     NodePtr clause_body();

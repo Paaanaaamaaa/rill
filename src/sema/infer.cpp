@@ -162,6 +162,14 @@ private:
         return "?";
     }
 
+    // i64, [i64] or [i64..]
+    int from_ref(const Token& t, int form) {
+        int base = from_name(t);
+        if (form == 1) return container(K::List, base);
+        if (form == 2) return container(K::Stream, base);
+        return base;
+    }
+
     int from_name(const Token& t) {
         TyName tn = parse_ty_name(t.text);
         switch (tn.kind) {
@@ -210,7 +218,7 @@ private:
             if (n->kind != NodeKind::Def && n->kind != NodeKind::Isomorph) continue;
             std::vector<int> sig;
             if (n->sig) {
-                for (auto& k : n->sig->kids) sig.push_back(from_name(k->tok));
+                for (auto& k : n->sig->kids) sig.push_back(from_ref(k->tok, k->tyform));
             } else {
                 for (int i = 0; i <= n->arity; ++i) sig.push_back(var(false));
             }
@@ -266,7 +274,7 @@ private:
             return any_;
         }
         int x = ty_of(name.decl);
-        if (n.annotated) unify(x, from_name(n.ann));
+        if (n.annotated) unify(x, from_ref(n.ann, n.annform));
         if (!unify(x, r))
             err(where(rhs), "'" + std::string(name.tok.text) + "' has type " + show(x) +
                             " but the value is " + show(r));

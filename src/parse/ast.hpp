@@ -35,6 +35,8 @@ struct Node {
     int decl = -1;            // which declaration this points at, set by sema
     const Node* sig = nullptr;  // Def/Isomorph: its signature line, if any
     bool annotated = false;   // Bind: written as  x : type <~ ...
+    int tyform = 0;   // Name in a signature: 0 plain, 1 [t], 2 [t..]
+    int annform = 0;  // Bind: the same thing for its annotation
     Token ann{};              // Bind: the type name
     std::vector<NodePtr> kids;
 };

@@ -349,20 +349,43 @@ NodePtr Parser::manifold() {
     return m;
 }
 
+// i64, [i64] or [i64..]
+NodePtr Parser::type_ref() {
+    int form = 0;
+    if (cur().kind == Tok::LBracket) {
+        take();
+        form = 1;
+        if (cur().kind == Tok::LBracket) fail("lists of lists are not supported yet");
+    }
+    Token t = cur();
+    expect(Tok::Ident, "expected a type");
+    if (form) {
+        if (cur().kind == Tok::DotDot) {
+            take();
+            form = 2;
+        }
+        expect(Tok::RBracket, "expected ']'");
+    }
+    NodePtr n = node(NodeKind::Name, t);
+    n->tyform = form;
+    return n;
+}
+
 NodePtr Parser::annotated() {
     Token name = take();
     take();
-    std::vector<Token> types;
-    while (cur().kind == Tok::Ident) types.push_back(take());
+    auto starts_type = [&] { return cur().kind == Tok::Ident || cur().kind == Tok::LBracket; };
+    std::vector<NodePtr> types;
+    while (starts_type()) types.push_back(type_ref());
     if (types.empty()) fail("expected a type after ':'");
 
     if (cur().kind == Tok::FatArrow) {
         take();
-        Token ret = cur();
-        expect(Tok::Ident, "expected the result type after '=>'");
+        if (!starts_type()) fail("expected the result type after '=>'");
+        NodePtr ret = type_ref();
         NodePtr s = node(NodeKind::Sig, name);
-        for (const Token& t : types) s->kids.push_back(node(NodeKind::Name, t));
-        s->kids.push_back(node(NodeKind::Name, ret));
+        for (auto& t : types) s->kids.push_back(std::move(t));
+        s->kids.push_back(std::move(ret));
         end_line();
         return s;
     }
@@ -375,7 +398,8 @@ NodePtr Parser::annotated() {
     b->kids.push_back(node(NodeKind::Name, name));
     b->kids.push_back(expr());
     b->annotated = true;
-    b->ann = types[0];
+    b->ann = types[0]->tok;
+    b->annform = types[0]->tyform;
     end_line();
     return b;
 }
