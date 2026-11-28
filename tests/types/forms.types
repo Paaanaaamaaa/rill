@@ -1,6 +1,7 @@
 sq : i64 => i64
+fib : [i64..]
 n : u8
 msg : str
-t : any
+t : [i64]
 cmp : bool
 r : i64

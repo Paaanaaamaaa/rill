@@ -9,7 +9,7 @@
 namespace rill {
 namespace {
 
-enum class K { Var, Int, Bool, Str, Any, Fn };
+enum class K { Var, Int, Bool, Str, Any, Fn, List, Stream };
 
 struct T {
     K k = K::Any;
@@ -17,6 +17,7 @@ struct T {
     int width = 0;
     bool num = false;     // Var that came from a number, can only become an int
     int link = -1;        // Var: what it got resolved to
+    int elem = -1;        // List, Stream: type of the items
     std::vector<int> fn;  // Fn: parameter types, then the result
 };
 
@@ -25,6 +26,16 @@ struct Lit {
     u128 v;
     int ty;
 };
+
+bool arith_tok(Tok k) {
+    switch (k) {
+        case Tok::Plus: case Tok::Minus: case Tok::Star: case Tok::Slash:
+        case Tok::Percent: case Tok::Amp: case Tok::Power: case Tok::Shl: case Tok::Shr:
+            return true;
+        default:
+            return false;
+    }
+}
 
 class Infer {
 public:
@@ -45,6 +56,8 @@ public:
                 lines.push_back(std::string(x.tok.text) + " : " + show(ty_of(x.decl)));
             } else if (n->kind == NodeKind::Def || n->kind == NodeKind::Isomorph) {
                 lines.push_back(std::string(n->tok.text) + " : " + show(fns_.at(n->decl)));
+            } else if (n->kind == NodeKind::Orbit) {
+                lines.push_back(std::string(n->tok.text) + " : " + show(ty_of(n->decl)));
             }
         }
         return lines;
@@ -70,9 +83,31 @@ private:
         return t;
     }
 
+    int container(K k, int elem) {
+        int t = mk(k);
+        ts_[t].elem = elem;
+        return t;
+    }
+
     int find(int t) {
         while (ts_[t].k == K::Var && ts_[t].link >= 0) t = ts_[t].link;
         return t;
+    }
+
+    bool is_cont(int t) {
+        K k = ts_[find(t)].k;
+        return k == K::List || k == K::Stream;
+    }
+
+    bool occurs(int v, int t) {
+        t = find(t);
+        if (t == v) return true;
+        const T& x = ts_[t];
+        if (x.k == K::List || x.k == K::Stream) return occurs(v, x.elem);
+        if (x.k == K::Fn)
+            for (int p : x.fn)
+                if (occurs(v, p)) return true;
+        return false;
     }
 
     bool unify(int a, int b) {
@@ -96,12 +131,14 @@ private:
                 return true;
             }
             if (ts_[a].num && kb != K::Int) return false;
+            if (occurs(a, b)) return false;
             ts_[a].link = b;
             return true;
         }
         if (ka != kb) return false;
         if (ka == K::Int) return ts_[a].sign == ts_[b].sign && ts_[a].width == ts_[b].width;
         if (ka == K::Fn) return false;
+        if (ka == K::List || ka == K::Stream) return unify(ts_[a].elem, ts_[b].elem);
         return true;  // Bool, Str
     }
 
@@ -109,11 +146,13 @@ private:
         t = find(t);
         const T& x = ts_[t];
         switch (x.k) {
-            case K::Var:  return x.num ? "number" : "unknown";
-            case K::Int:  return std::string(x.sign ? "i" : "u") + std::to_string(x.width);
-            case K::Bool: return "bool";
-            case K::Str:  return "str";
-            case K::Any:  return "any";
+            case K::Var:    return x.num ? "number" : "unknown";
+            case K::Int:    return std::string(x.sign ? "i" : "u") + std::to_string(x.width);
+            case K::Bool:   return "bool";
+            case K::Str:    return "str";
+            case K::Any:    return "any";
+            case K::List:   return "[" + show(x.elem) + "]";
+            case K::Stream: return "[" + show(x.elem) + "..]";
             case K::Fn: {
                 std::string s;
                 for (size_t i = 0; i + 1 < x.fn.size(); ++i) s += show(x.fn[i]) + " ";
@@ -149,6 +188,11 @@ private:
     // item of a list or strand, has to match the ones before it
     void same(int& first, Node& item) {
         int t = ex(item);
+        if (is_cont(t)) {
+            err(where(item), "lists of lists are not supported yet");
+            if (first < 0) first = any_;
+            return;
+        }
         if (first < 0) { first = t; return; }
         if (!unify(first, t))
             err(where(item), "list items need one type, got " + show(first) + " and " + show(t));
@@ -190,13 +234,9 @@ private:
             case NodeKind::Monad:    return monad(n);
             case NodeKind::Dyad:     return dyad(n);
             case NodeKind::Juxt:     return juxt(n);
+            case NodeKind::List:     return list(n);
             case NodeKind::Block:    return stmts(n.kids);
             case NodeKind::Match:    return match(n);
-            case NodeKind::List: {
-                int first = -1;
-                for (auto& k : n.kids) same(first, *k);
-                return any_;
-            }
             case NodeKind::Def:
             case NodeKind::Isomorph: def(n); return any_;
             case NodeKind::Orbit:    orbit(n); return any_;
@@ -211,8 +251,9 @@ private:
         switch (n.sym) {
             case Sym::Val:
             case Sym::Mut:
-            case Sym::Arg: return ty_of(n.decl);
-            default:       return any_;
+            case Sym::Arg:
+            case Sym::Stream: return ty_of(n.decl);
+            default:          return any_;
         }
     }
 
@@ -232,46 +273,163 @@ private:
         return x;
     }
 
+    // [1,2,3] is a list, [1,3..] a stream, [1..10] a list again
+    int list(Node& n) {
+        size_t items = n.kids.size() - (n.has_end ? 1 : 0);
+        int first = -1;
+        for (size_t i = 0; i < items; ++i) same(first, *n.kids[i]);
+        if (!n.dots) return container(K::List, first);
+
+        if (!unify(first, var(true)))
+            err(n.tok, "a range needs numbers, got " + show(first));
+        if (n.has_end) {
+            Node& end = *n.kids.back();
+            int e = ex(end);
+            if (!unify(first, e))
+                err(where(end), "the end of the range is " + show(e) + " but the start is " + show(first));
+            return container(K::List, first);
+        }
+        return container(K::Stream, first);
+    }
+
     int monad(Node& n) {
         int t = ex(*n.kids[0]);
-        if (n.tok.kind == Tok::Minus && n.adverb.empty()) return t;
+        Tok op = n.tok.kind;
+        if (n.adverb == "/") return fold(n, t);
+        if (!n.adverb.empty()) {
+            // *~ squares, so the shape that goes in comes out
+            if (n.adverb == "~" && arith_tok(op)) return t;
+            return any_;
+        }
+        if (op == Tok::Minus) return t;
+        if (op == Tok::Hash) {
+            if (ts_[find(t)].k == K::Stream)
+                err(n.tok, "a stream has no length, take some first, like 10#");
+            return i64_;
+        }
         return any_;
+    }
+
+    int fold(Node& n, int t) {
+        if (!arith_tok(n.tok.kind)) return any_;
+        int f = find(t);
+        switch (ts_[f].k) {
+            case K::Stream:
+                err(n.tok, "can't fold an infinite stream, take some first, like 10#");
+                return ts_[f].elem;
+            case K::List:
+                return ts_[f].elem;
+            case K::Var: {
+                if (ts_[f].num) return f;
+                // unknown, a fold is most likely over a list
+                int e = var(false);
+                unify(f, container(K::List, e));
+                return e;
+            }
+            case K::Any:
+            case K::Fn:
+                return any_;
+            default:
+                return f;  // folding one value gives the value
+        }
     }
 
     int dyad(Node& n) {
         int l = ex(*n.kids[0]);
         int r = ex(*n.kids[1]);
         if (!n.adverb.empty()) return any_;
-        bool compare = false;
         switch (n.tok.kind) {
+            case Tok::Hash: return take(n, l, r);
+            case Tok::At:   return index(n, l, r);
             case Tok::Lt: case Tok::Gt: case Tok::Eq:
-                compare = true;
-                break;
-            case Tok::Plus: case Tok::Minus: case Tok::Star: case Tok::Slash:
-            case Tok::Percent: case Tok::Amp: case Tok::Power: case Tok::Shl: case Tok::Shr:
-                break;
+                return arith(n, l, r, true);
             default:
+                if (arith_tok(n.tok.kind)) return arith(n, l, r, false);
                 return any_;
         }
-        if (!unify(l, r))
-            err(n.tok, "'" + std::string(n.tok.text) + "' needs both sides the same type, got " +
-                       show(l) + " and " + show(r));
-        return compare ? bool_ : l;
+    }
+
+    int arith(Node& n, int l, int r, bool compare) {
+        int a = find(l), b = find(r);
+        K ka = ts_[a].k, kb = ts_[b].k;
+        if (ka == K::Any || kb == K::Any) return any_;
+        bool ca = ka == K::List || ka == K::Stream;
+        bool cb = kb == K::List || kb == K::Stream;
+        std::string op(n.tok.text);
+
+        if (!ca && !cb) {
+            if (!unify(a, b))
+                err(n.tok, "'" + op + "' needs both sides the same type, got " + show(a) + " and " + show(b));
+            return compare ? bool_ : a;
+        }
+        if (ca && cb) {
+            if (ka != kb) {
+                err(n.tok, "'" + op + "' can't mix a list and a stream, take from the stream first");
+                return any_;
+            }
+            if (!unify(ts_[a].elem, ts_[b].elem))
+                err(n.tok, "'" + op + "' needs both sides the same type, got " + show(a) + " and " + show(b));
+            return container(ka, compare ? bool_ : ts_[a].elem);
+        }
+        // one side is a list or stream, the other is not
+        int c = ca ? a : b;
+        int o = ca ? b : a;
+        K kc = ts_[c].k;
+        if (ts_[o].k == K::Var && !ts_[o].num) {
+            // don't know what it is yet, assume the same shape
+            unify(o, c);
+            return compare ? container(kc, bool_) : c;
+        }
+        int e = ts_[c].elem;
+        if (!unify(e, o))
+            err(n.tok, "'" + op + "' needs both sides the same type, got " + show(a) + " and " + show(b));
+        return container(kc, compare ? bool_ : e);
+    }
+
+    // n # x
+    int take(Node& n, int l, int r) {
+        int a = find(l), b = find(r);
+        K ka = ts_[a].k;
+        if (ka == K::List || ka == K::Stream || ka == K::Bool || ka == K::Str)
+            err(n.tok, "the count before # must be one number, got " + show(a));
+        else if (ka == K::Var && !ts_[a].num)
+            unify(a, var(true));
+
+        K kb = ts_[b].k;
+        if (kb == K::List || kb == K::Stream) return container(K::List, ts_[b].elem);
+        if (kb == K::Any || kb == K::Fn || (kb == K::Var && !ts_[b].num)) return any_;
+        return container(K::List, b);  // one value, repeated
+    }
+
+    // x @ i
+    int index(Node& n, int l, int r) {
+        int a = find(l);
+        if (is_cont(r)) err(n.tok, "the index must be one number");
+        K ka = ts_[a].k;
+        if (ka == K::List || ka == K::Stream) return ts_[a].elem;
+        if (ka == K::Any || ka == K::Str || ka == K::Fn || (ka == K::Var && !ts_[a].num)) return any_;
+        err(n.tok, "'@' needs a list on the left, got " + show(a));
+        return any_;
     }
 
     int juxt(Node& n) {
         Node& head = *n.kids[0];
-        if (n.shape == Shape::Call && head.kind == NodeKind::Name) {
-            auto f = fns_.find(head.decl);
-            if (f != fns_.end()) return call(n, f->second);
-        }
-        bool join = n.shape == Shape::List || n.shape == Shape::CallStrand;
-        size_t from = n.shape == Shape::CallStrand ? 1 : 0;
+        auto f = head.kind == NodeKind::Name ? fns_.find(head.decl) : fns_.end();
+        bool known = f != fns_.end();
+        if (n.shape == Shape::Call && known) return call(n, f->second);
+        if (n.shape == Shape::CallStrand && known) return call_strand(n, f->second);
+
         int first = -1;
-        for (size_t i = 0; i < n.kids.size(); ++i) {
-            if (join && i >= from) same(first, *n.kids[i]);
-            else ex(*n.kids[i]);
+        if (n.shape == Shape::List) {
+            for (auto& k : n.kids) same(first, *k);
+            return container(K::List, first);
         }
+        if (n.shape == Shape::CallStrand) {
+            ex(head);
+            for (size_t i = 1; i < n.kids.size(); ++i) same(first, *n.kids[i]);
+            return any_;
+        }
+        for (auto& k : n.kids) ex(*k);
         return any_;
     }
 
@@ -283,6 +441,18 @@ private:
                 err(where(*n.kids[i]), "'" + std::string(n.kids[0]->tok.text) + "' takes " +
                                        show(sig[i - 1]) + " here, got " + show(a));
         }
+        return sig.back();
+    }
+
+    // sq 1 2, a one-argument function given a strand
+    int call_strand(Node& n, int fn) {
+        std::vector<int> sig = ts_[fn].fn;
+        int first = -1;
+        for (size_t i = 1; i < n.kids.size(); ++i) same(first, *n.kids[i]);
+        int lst = container(K::List, first);
+        if (!unify(sig[0], lst))
+            err(where(*n.kids[1]), "'" + std::string(n.kids[0]->tok.text) + "' takes " +
+                                   show(sig[0]) + " here, got " + show(lst));
         return sig.back();
     }
 
@@ -354,12 +524,16 @@ private:
                 int a = ex(*seeds[i]);
                 if (!unify(s, a))
                     err(where(*seeds[i]), "the seed is " + show(a) + " but the state is " + show(s));
+                else if (is_cont(s))
+                    err(where(*seeds[i]), "an orbit state is one value, not a list");
                 int b = ex(*steps[i]);
                 if (!unify(s, b))
                     err(where(*steps[i]), "the step gives " + show(b) + " but the state is " + show(s));
             }
         }
-        if (n.decl >= 0) decl_ty_[n.decl] = any_;
+        // the stream hands out the first state value
+        int s0 = names[0]->tok.text == "_" ? any_ : ty_of(names[0]->decl);
+        if (n.decl >= 0) decl_ty_[n.decl] = container(K::Stream, s0);
     }
 
     // anything still unknown becomes i64, then every number gets its fit check
