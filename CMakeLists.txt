@@ -18,7 +18,8 @@ add_executable(rill
   src/sema/sema.cpp
   src/sema/infer.cpp
   src/ir/ir.cpp
-  src/ir/lower.cpp)
+  src/ir/lower.cpp
+  src/backend/codegen.cpp)
 
 target_include_directories(rill PRIVATE src)
 target_compile_options(rill PRIVATE -Wall -Wextra -Wpedantic)
