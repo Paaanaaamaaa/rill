@@ -1,0 +1,13 @@
+sum : [i64] => i64
+sum :: x => +/ x
+
+dbl :: v => v + v
+
+>>! sum 1 2 3 4
+>>! dbl 1 2 3
+>>! sum (dbl 5 6)
+
+base <~ 10 20 30
+shift : i64 => [i64]
+shift :: n => base + n
+>>! shift 1
