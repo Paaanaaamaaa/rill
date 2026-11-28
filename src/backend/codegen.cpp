@@ -201,6 +201,11 @@ public:
             for (unsigned char c : m_.strings[i]) out_ += std::to_string(static_cast<int>(c)) + ", ";
             out_ += "10\n";  // print puts a newline after every value
         }
+        if (!m_.globals.empty()) {
+            out_ += ".section .bss\n.balign 16\n";
+            for (size_t i = 0; i < m_.globals.size(); ++i)
+                out_ += ".Lg" + std::to_string(i) + ": .skip 16\n";
+        }
         out_ += ".section .note.GNU-stack,\"\",@progbits\n";
         out = std::move(out_);
         return true;
@@ -295,9 +300,34 @@ private:
         else store(in.dst);
     }
 
+    // a global is 16 bytes in .bss, low word first
+    void global(const Instr& in) {
+        std::string at = ".Lg" + std::to_string(static_cast<size_t>(in.imm));
+        std::string lo_mem = "qword ptr [rip + " + at + "]";
+        std::string hi_mem = "qword ptr [rip + " + at + " + 8]";
+        bool w = wide(in.ty);
+        if (in.op == Op::LoadG) {
+            line("mov rax, " + lo_mem);
+            if (w) {
+                line("mov rdx, " + hi_mem);
+                store2(in.dst);
+            } else {
+                store(in.dst);
+            }
+            return;
+        }
+        load("rax", in.args[0]);
+        line("mov " + lo_mem + ", rax");
+        if (w) {
+            loadh("rax", in.args[0]);
+            line("mov " + hi_mem + ", rax");
+        }
+    }
+
     void instr(const Instr& in) {
         // a call's type is the result type, so it has to be looked at before the width check
         if (in.op == Op::Call) { call(in); return; }
+        if (in.op == Op::LoadG || in.op == Op::StoreG) { global(in); return; }
         if (wide(in.ty)) { wide_instr(in); return; }
 
         const IrTy& t = in.ty;

@@ -18,7 +18,8 @@ enum class Op {
     Const, Copy,
     Add, Sub, Mul, Div, Rem, And, Shl, Shr, Neg,
     Lt, Gt, Eq,
-    Call, Print, PrintStr
+    Call, Print, PrintStr,
+    LoadG, StoreG
 };
 
 struct Instr {
@@ -26,7 +27,7 @@ struct Instr {
     int dst = -1;           // -1 when the op gives no value
     IrTy ty;                // what the op works on. for Lt/Gt/Eq that is the operands, not the bool
     std::vector<int> args;  // registers
-    u128 imm = 0;           // Const: the value. Call: function index. PrintStr: string index
+    u128 imm = 0;           // Const: the value. Call: function index. PrintStr: string index. LoadG, StoreG: global index
 };
 
 enum class Term { None, Jmp, Br, Ret, Exit, Trap };
@@ -51,6 +52,7 @@ struct Function {
 struct Module {
     std::vector<Function> fns;  // fns[0] is main
     std::vector<std::string> strings;
+    std::vector<IrTy> globals;  // memory cells, read with LoadG and written with StoreG
 };
 
 std::string ir_dump(const Module& m);

@@ -32,6 +32,8 @@ const char* op_name(Op op) {
         case Op::Call:     return "call";
         case Op::Print:    return "print";
         case Op::PrintStr: return "printstr";
+        case Op::LoadG: return "loadg";
+        case Op::StoreG: return "storeg";
     }
     return "?";
 }
@@ -70,6 +72,9 @@ std::string ty_str(const IrTy& t) {
 
 std::string ir_dump(const Module& m) {
     std::string out;
+    for (size_t gi = 0; gi < m.globals.size(); ++gi)
+        out += "global g" + std::to_string(gi) + ": " + ty_str(m.globals[gi]) + "\n";
+    if (!m.globals.empty()) out += "\n";
     for (size_t fi = 0; fi < m.fns.size(); ++fi) {
         const Function& f = m.fns[fi];
         if (fi) out += "\n";
@@ -93,6 +98,9 @@ std::string ir_dump(const Module& m) {
                     out += "." + ty_str(in.ty) + " ";
                     if (in.ty.is_bool) out += in.imm ? "#t" : "#f";
                     else out += u128_str(in.imm);
+                } else if (in.op == Op::LoadG || in.op == Op::StoreG) {
+                    out += "." + ty_str(in.ty) + " g" + u128_str(in.imm);
+                    if (!in.args.empty()) out += ", " + args_str(in.args);
                 } else if (in.op == Op::PrintStr) {
                     out += " s" + u128_str(in.imm);
                 } else if (in.op == Op::Call) {

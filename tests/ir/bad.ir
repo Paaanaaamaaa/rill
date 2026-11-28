@@ -13,6 +13,3 @@ tests/ir/bad.rill:8:6: error: not lowered yet: strings outside of >>!
 tests/ir/bad.rill:9:8: error: not lowered yet: the verb '**' with two arguments
   z <~ 2 ** 3
          ^^
-tests/ir/bad.rill:7:15: error: not lowered yet: a function using a top-level value
-  g :: n => n + y
-                ^

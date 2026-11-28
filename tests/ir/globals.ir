@@ -1,0 +1,20 @@
+global g0: i64
+
+fn main()
+b0:
+  v0 = const.i64 5
+  storeg.i64 g0, v0
+  v1 = const.i64 2
+  v2 = call f(v1)
+  print.i64 v2
+  v3 = const.i64 0
+  exit v3
+
+fn f(v0: i64) -> i64
+b0:
+  v1 = copy.i64 v0
+  v2 = loadg.i64 g0
+  v3 = add.i64 v1, v2
+  ret v3
+b1:
+  trap

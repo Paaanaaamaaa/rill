@@ -1,0 +1,20 @@
+base <~ 100
+count <~! 0
+big : u67 <~ 36893488147419103232
+
+addbase :: n => n + base
+
+bump :: n =>
+    count ~! count + n
+    count
+
+twice : u67 => u67
+twice :: x => x + big
+
+>>! addbase 5
+>>! bump 3
+>>! bump 4
+>>! count
+count ~! 50
+>>! bump 1
+>>! twice 1

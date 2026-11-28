@@ -2,6 +2,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace rill {
@@ -47,6 +48,7 @@ public:
     Module run(std::vector<NodePtr>& program) {
         mod_.fns.emplace_back();
         mod_.fns[0].name = "main";
+        find_captured(program);
         // every function exists before any body is lowered, so calls can point forward
         for (auto& n : program) {
             if (n->kind != NodeKind::Def && n->kind != NodeKind::Isomorph) continue;
@@ -201,8 +203,10 @@ private:
             case NodeKind::Name: {
                 bool value = n.sym == Sym::Val || n.sym == Sym::Mut || n.sym == Sym::Arg;
                 if (!value) unsupported(n.tok, "using '" + std::string(n.tok.text) + "' as a value");
+                auto g = globals_.find(n.decl);
+                if (g != globals_.end()) return load_global(g->second);
                 auto it = vars_.find(n.decl);
-                if (it == vars_.end()) unsupported(n.tok, "a function using a top-level value");
+                if (it == vars_.end()) unsupported(n.tok, "a top-level value that failed to lower");
                 return it->second;
             }
             case NodeKind::Bind:  return bind(n);
@@ -233,6 +237,7 @@ private:
         int r = expr(*n.kids[1]);
         if (r < 0) unsupported(n.kids[1]->tok, "binding something that has no value");
         IrTy t = reg_ty(r);
+        if (captured_.count(name.decl)) return set_global(n, name, r, t);
         if (n.tok.kind == Tok::Assign) {
             auto it = vars_.find(name.decl);
             if (it == vars_.end()) unsupported(name.tok, "a function changing a top-level value");
@@ -339,9 +344,51 @@ private:
         return res;
     }
 
+    // top-level names that a function reads or writes. main's registers are not
+    // visible to functions, so these have to live in memory
+    void find_captured(std::vector<NodePtr>& program) {
+        std::unordered_set<int> top;
+        for (auto& n : program) {
+            if (n->kind != NodeKind::Bind) continue;
+            const Node& name = *n->kids[0];
+            if (name.sym == Sym::Val || name.sym == Sym::Mut) top.insert(name.decl);
+        }
+        for (auto& n : program)
+            if (n->kind == NodeKind::Def || n->kind == NodeKind::Isomorph) scan(*n, top);
+    }
+
+    void scan(const Node& n, const std::unordered_set<int>& top) {
+        if (n.kind == NodeKind::Name && top.count(n.decl)) captured_.insert(n.decl);
+        for (const auto& k : n.kids) scan(*k, top);
+    }
+
+    int load_global(int g) {
+        IrTy t = mod_.globals[static_cast<size_t>(g)];
+        int r = new_reg(t);
+        return emit(Op::LoadG, t, {}, r, static_cast<u128>(g));
+    }
+
+    // the first <~ makes the cell, a later ~! writes to the same one
+    int set_global(Node& n, Node& name, int r, IrTy t) {
+        int g;
+        auto it = globals_.find(name.decl);
+        if (n.tok.kind == Tok::Assign) {
+            if (it == globals_.end()) unsupported(name.tok, "a top-level value that failed to lower");
+            g = it->second;
+        } else {
+            g = static_cast<int>(mod_.globals.size());
+            mod_.globals.push_back(t);
+            globals_[name.decl] = g;
+        }
+        emit(Op::StoreG, t, {r}, -1, static_cast<u128>(g));
+        return r;
+    }
+
     Diagnostics& diags_;
     Module mod_;
     std::unordered_map<int, int> fn_index_;  // declaration id of a def -> index in mod_.fns
+    std::unordered_set<int> captured_;       // top-level names that a function uses
+    std::unordered_map<int, int> globals_;   // declaration id -> index in mod_.globals
     std::unordered_map<int, int> vars_;      // declaration id -> register, per function
     int cur_ = 0;
     int bb_ = 0;
