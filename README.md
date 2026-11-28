@@ -82,7 +82,7 @@ flowchart TD
     H --> I["Assembly & Linking"]
     I --> J(["Native Executable"])
 
-    classDef endpoint fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-width:1.5px
+    classDef endpoint fill:#f1f5f9,stroke:,color:#0f172a,stroke-width:1.5px
     class A,J endpoint
 ```
 
