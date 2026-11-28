@@ -14,7 +14,9 @@ add_executable(rill
   src/lex/layout.cpp
   src/parse/ast.cpp
   src/parse/parser.cpp
-  src/sema/sema.cpp)
+  src/sema/types.cpp
+  src/sema/sema.cpp
+  src/sema/infer.cpp)
 
 target_include_directories(rill PRIVATE src)
 target_compile_options(rill PRIVATE -Wall -Wextra -Wpedantic)

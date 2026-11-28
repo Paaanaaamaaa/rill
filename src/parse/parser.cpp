@@ -94,6 +94,7 @@ NodePtr Parser::statement() {
         case Tok::KwManifold: return manifold();
         default: break;
     }
+    if (cur().kind == Tok::Ident && after().kind == Tok::Colon) return annotated();
     if (cur().kind == Tok::Ident && after().kind == Tok::Clause) return definition(NodeKind::Def);
     if (cur().kind == Tok::Clause) fail("this :: has no name above it");
     NodePtr s;
@@ -346,6 +347,37 @@ NodePtr Parser::manifold() {
     m->kids.push_back(std::move(body));
     if (!block) end_line();
     return m;
+}
+
+NodePtr Parser::annotated() {
+    Token name = take();
+    take();
+    std::vector<Token> types;
+    while (cur().kind == Tok::Ident) types.push_back(take());
+    if (types.empty()) fail("expected a type after ':'");
+
+    if (cur().kind == Tok::FatArrow) {
+        take();
+        Token ret = cur();
+        expect(Tok::Ident, "expected the result type after '=>'");
+        NodePtr s = node(NodeKind::Sig, name);
+        for (const Token& t : types) s->kids.push_back(node(NodeKind::Name, t));
+        s->kids.push_back(node(NodeKind::Name, ret));
+        end_line();
+        return s;
+    }
+
+    if (types.size() != 1) fail("a bind has exactly one type");
+    if (cur().kind != Tok::Bind && cur().kind != Tok::BindMut)
+        fail("expected '<~' or '=>' after the type");
+    Token op = take();
+    NodePtr b = node(NodeKind::Bind, op);
+    b->kids.push_back(node(NodeKind::Name, name));
+    b->kids.push_back(expr());
+    b->annotated = true;
+    b->ann = types[0];
+    end_line();
+    return b;
 }
 
 }  // namespace rill

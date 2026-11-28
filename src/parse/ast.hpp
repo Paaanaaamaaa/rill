@@ -10,7 +10,8 @@ namespace rill {
 enum class NodeKind {
     Int, Str, Name, Bind, Monad, Dyad, Juxt, List, Verb, Train,
     Def, Clause, Block, Match, Arm,
-    Orbit, Isomorph, Fixpoint, Quiesce, Manifold, Lattice, Field
+    Orbit, Isomorph, Fixpoint, Quiesce, Manifold, Lattice, Field,
+    Sig
 };
 
 // what a name turned out to be, filled in by sema
@@ -31,6 +32,10 @@ struct Node {
     Sym sym = Sym::None;      // Name
     int arity = -1;           // Name/Def: -1 means any
     Shape shape = Shape::None;  // Juxt
+    int decl = -1;            // which declaration this points at, set by sema
+    const Node* sig = nullptr;  // Def/Isomorph: its signature line, if any
+    bool annotated = false;   // Bind: written as  x : type <~ ...
+    Token ann{};              // Bind: the type name
     std::vector<NodePtr> kids;
 };
 

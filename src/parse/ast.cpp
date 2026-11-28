@@ -44,6 +44,16 @@ std::string dump(const Node& n, bool resolved) {
             return self;
         case NodeKind::Verb:
             return self + std::string(n.adverb);
+        case NodeKind::Bind:
+            if (n.annotated)
+                return "(" + self + " " + dump(*n.kids[0], resolved) + " : " +
+                       std::string(n.ann.text) + " " + dump(*n.kids[1], resolved) + ")";
+            break;
+        case NodeKind::Sig: {
+            std::string s = "(sig " + self;
+            for (size_t i = 0; i + 1 < n.kids.size(); ++i) s += " " + dump(*n.kids[i], resolved);
+            return s + " => " + dump(*n.kids.back(), resolved) + ")";
+        }
         case NodeKind::List: {
             std::string s = "(list";
             size_t items = n.kids.size() - (n.has_end ? 1 : 0);

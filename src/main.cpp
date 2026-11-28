@@ -5,12 +5,13 @@
 #include "lex/layout.hpp"
 #include "lex/lexer.hpp"
 #include "parse/parser.hpp"
+#include "sema/infer.hpp"
 #include "sema/sema.hpp"
 
 int main(int argc, char** argv) {
     std::string mode = argc == 3 ? argv[1] : "";
-    if (mode != "--tokens" && mode != "--ast" && mode != "--sema") {
-        std::cerr << "usage: rill --tokens|--ast|--sema <file.rl>\n";
+    if (mode != "--tokens" && mode != "--ast" && mode != "--sema" && mode != "--types") {
+        std::cerr << "usage: rill --tokens|--ast|--sema|--types <file.rl>\n";
         return 2;
     }
     rill::Source src;
@@ -36,9 +37,20 @@ int main(int argc, char** argv) {
     }
     auto tree = rill::Parser(toks, diags).parse();
     // a tree with parse errors in it would only cause fake sema errors
-    bool sema = mode == "--sema";
+    bool sema = mode == "--sema" || mode == "--types";
     if (sema && !diags.any()) rill::analyze(tree, diags);
-    for (const auto& n : tree) std::cout << rill::dump(*n, sema) << '\n';
+
+    if (mode == "--types") {
+        if (!diags.any()) {
+            auto lines = rill::infer(tree, diags);
+            if (!diags.any())
+                for (const auto& l : lines) std::cout << l << '\n';
+        }
+        diags.print(src, std::cerr);
+        return diags.any() ? 1 : 0;
+    }
+
+    for (const auto& n : tree) std::cout << rill::dump(*n, mode == "--sema") << '\n';
     diags.print(src, std::cerr);
     return diags.any() ? 1 : 0;
 }

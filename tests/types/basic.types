@@ -1,0 +1,9 @@
+x : i67
+y : i64
+z : i67
+c : bool
+msg : str
+big : u8
+fact : i67 => i67
+twice : i64 => i64
+add : i32 i32 => i32

@@ -1,0 +1,21 @@
+tests/types/bad.rl:3:8: error: '+' needs both sides the same type, got i67 and i64
+  c <~ a + b
+         ^
+tests/types/bad.rl:5:12: error: 'e' has type str but the value is number
+  e : str <~ 5
+             ^
+tests/types/bad.rl:6:11: error: 'f' has type i8 but the value is str
+  f : i8 <~ "no"
+            ^^^^
+tests/types/bad.rl:10:7: error: 'g' takes i64 here, got i67
+  >>! g a
+        ^
+tests/types/bad.rl:11:13: error: 'h' has type bool but the value is number
+  h : bool <~ 1
+              ^
+tests/types/bad.rl:12:8: error: list items need one type, got i67 and i64
+  w <~ a b
+         ^
+tests/types/bad.rl:4:11: error: 300 does not fit in u8
+  d : u8 <~ 300
+            ^^^

@@ -25,6 +25,7 @@ private:
     NodePtr verb_node(NodeKind k);
 
     NodePtr statement();
+    NodePtr annotated();
     NodePtr definition(NodeKind kind);
     NodePtr clause();
     NodePtr clause_body();

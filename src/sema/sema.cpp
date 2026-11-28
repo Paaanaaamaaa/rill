@@ -3,28 +3,17 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include "common/num.hpp"
+#include "sema/types.hpp"
 
 namespace rill {
 namespace {
 
-__extension__ typedef unsigned __int128 u128;
-
 struct Entry {
     Sym sym;
     int arity;  // -1 means any, that is what a bound train gets
+    int id;     // one per declaration, infer uses it to find a name's type
 };
-
-// digits only. false when it does not fit in 128 bits
-bool parse_u128(std::string_view digits, u128& out) {
-    out = 0;
-    const u128 max = ~static_cast<u128>(0);
-    for (char c : digits) {
-        unsigned d = static_cast<unsigned>(c - '0');
-        if (out > (max - d) / 10) return false;
-        out = out * 10 + d;
-    }
-    return true;
-}
 
 class Sema {
 public:
@@ -41,10 +30,18 @@ private:
     void push() { scopes_.emplace_back(); }
     void pop() { scopes_.pop_back(); }
 
-    bool declare(const Token& t, Sym s, int arity) {
-        auto [it, fresh] = scopes_.back().emplace(t.text, Entry{s, arity});
-        if (!fresh) err(t, "'" + std::string(t.text) + "' is already defined here");
-        return fresh;
+    // gives back the new id, or -1 when the name can't be declared
+    int declare(const Token& t, Sym s, int arity) {
+        if (parse_ty_name(t.text).kind != TyKind::NotType) {
+            err(t, "'" + std::string(t.text) + "' is a type name, pick another name");
+            return -1;
+        }
+        auto [it, fresh] = scopes_.back().emplace(t.text, Entry{s, arity, next_id_});
+        if (!fresh) {
+            err(t, "'" + std::string(t.text) + "' is already defined here");
+            return -1;
+        }
+        return next_id_++;
     }
 
     const Entry* lookup(std::string_view name) const {
@@ -55,15 +52,37 @@ private:
         return nullptr;
     }
 
+    static bool is_def(const Node& n) {
+        return n.kind == NodeKind::Def || n.kind == NodeKind::Isomorph;
+    }
+
     // functions and types can be used before the line that defines them
     void hoist(std::vector<NodePtr>& nodes) {
         for (auto& n : nodes) {
-            if (n->kind == NodeKind::Def || n->kind == NodeKind::Isomorph) {
+            if (is_def(*n)) {
                 n->arity = static_cast<int>(n->kids[0]->kids.size()) - 1;
-                declare(n->tok, Sym::Func, n->arity);
+                n->decl = declare(n->tok, Sym::Func, n->arity);
             } else if (n->kind == NodeKind::Lattice) {
-                declare(n->tok, Sym::Type, -1);
+                n->decl = declare(n->tok, Sym::Type, -1);
             }
+        }
+        // a signature belongs to the definition with the same name in the same block
+        for (auto& n : nodes) {
+            if (n->kind != NodeKind::Sig) continue;
+            Node* def = nullptr;
+            for (auto& m : nodes)
+                if (is_def(*m) && m->tok.text == n->tok.text) { def = m.get(); break; }
+            std::string name(n->tok.text);
+            int params = static_cast<int>(n->kids.size()) - 1;
+            if (!def)
+                err(n->tok, "no definition of '" + name + "' in this block");
+            else if (def->sig)
+                err(n->tok, "'" + name + "' already has a signature");
+            else if (params != def->arity)
+                err(n->tok, "the signature has " + std::to_string(params) + " types but '" +
+                            name + "' takes " + std::to_string(def->arity));
+            else
+                def->sig = n.get();
         }
     }
 
@@ -89,6 +108,9 @@ private:
             case NodeKind::Orbit:    orbit(n); break;
             case NodeKind::Manifold: manifold(n); break;
             case NodeKind::Lattice:  lattice(n); break;
+            case NodeKind::Sig:
+                for (auto& k : n.kids) check_type(k->tok);
+                break;
             case NodeKind::Monad:
             case NodeKind::Dyad:
             case NodeKind::List:
@@ -96,6 +118,14 @@ private:
             case NodeKind::Quiesce:  visit_kids(n); break;
             default: break;  // Str, Verb, Train
         }
+    }
+
+    void check_type(const Token& t) {
+        TyName tn = parse_ty_name(t.text);
+        if (tn.kind == TyKind::NotType)
+            err(t, "'" + std::string(t.text) + "' is not a type, try i64 or u8");
+        else if (tn.bad_width)
+            err(t, "bit width must be between 1 and 128");
     }
 
     void resolve(Node& n) {
@@ -110,25 +140,29 @@ private:
         }
         n.sym = e->sym;
         n.arity = e->arity;
+        n.decl = e->id;
     }
 
     void binding(Node& n) {
         Node& name = *n.kids[0];
         Node& rhs = *n.kids[1];
         visit(rhs);  // right side first, so  x <~ x  means the outer x
+        if (n.annotated) check_type(n.ann);
         if (n.tok.kind == Tok::Assign) {
             const Entry* e = lookup(name.tok.text);
-            if (!e)
+            if (!e) {
                 err(name.tok, "unknown name '" + std::string(name.tok.text) + "'");
-            else if (e->sym != Sym::Mut)
+            } else if (e->sym != Sym::Mut) {
                 err(name.tok, "'" + std::string(name.tok.text) + "' is not mutable, declare it with <~!");
-            else
+            } else {
                 name.sym = Sym::Mut;
+                name.decl = e->id;
+            }
             return;
         }
         Sym s = rhs.kind == NodeKind::Train ? Sym::Func
               : n.tok.kind == Tok::BindMut ? Sym::Mut : Sym::Val;
-        declare(name.tok, s, -1);
+        name.decl = declare(name.tok, s, -1);
         name.sym = s;
     }
 
@@ -139,7 +173,7 @@ private:
             if (p.kind == NodeKind::Int) {
                 check_int(p);
             } else if (p.kind == NodeKind::Name && p.tok.text != "_") {
-                declare(p.tok, Sym::Arg, -1);
+                p.decl = declare(p.tok, Sym::Arg, -1);
                 p.sym = Sym::Arg;
             }
         }
@@ -201,7 +235,7 @@ private:
         push();
         for (Node* s : names) {
             if (s->tok.text == "_") continue;
-            declare(s->tok, Sym::Arg, -1);
+            s->decl = declare(s->tok, Sym::Arg, -1);
             s->sym = Sym::Arg;
         }
         visit(step);
@@ -213,14 +247,14 @@ private:
                 if (part->kind == NodeKind::Juxt) part->shape = Shape::List;
         }
 
-        declare(n.tok, Sym::Stream, -1);
+        n.decl = declare(n.tok, Sym::Stream, -1);
         n.sym = Sym::Stream;
     }
 
     void manifold(Node& n) {
         visit(*n.kids[1]);
         push();
-        declare(n.kids[0]->tok, Sym::Region, -1);
+        n.kids[0]->decl = declare(n.kids[0]->tok, Sym::Region, -1);
         n.kids[0]->sym = Sym::Region;
         visit(*n.kids[2]);
         pop();
@@ -238,32 +272,11 @@ private:
         }
     }
 
-    // 42, 5'67, 5'u67. plain numbers get their type from context later
+    // only checks the size here, which type a number gets is up to infer
     void check_int(Node& n) {
-        std::string_view t = n.tok.text;
-        size_t q = t.find('\'');
         u128 v;
-        if (!parse_u128(t.substr(0, q), v)) {
+        if (!parse_u128(n.tok.text, v))
             err(n.tok, "number is too big, 128 bits is the limit");
-            return;
-        }
-        if (q == std::string_view::npos) return;
-
-        std::string_view rest = t.substr(q + 1);
-        bool is_unsigned = !rest.empty() && rest[0] == 'u';
-        if (!rest.empty() && (rest[0] == 'i' || rest[0] == 'u')) rest.remove_prefix(1);
-        if (rest.empty()) return;  // lexer already reported the missing width
-
-        u128 w;
-        if (!parse_u128(rest, w) || w < 1 || w > 128) {
-            err(n.tok, "bit width must be between 1 and 128");
-            return;
-        }
-        int width = static_cast<int>(w);
-        int bits = is_unsigned ? width : width - 1;
-        if (bits < 128 && (v >> bits) != 0)
-            err(n.tok, std::string("number does not fit in ") + (is_unsigned ? "u" : "i") +
-                       std::to_string(width));
     }
 
     // decide if `a b c` is a call or just values side by side
@@ -299,6 +312,7 @@ private:
 
     Diagnostics& diags_;
     std::vector<Scope> scopes_;
+    int next_id_ = 0;
 };
 
 }  // namespace

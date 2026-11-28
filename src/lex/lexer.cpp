@@ -49,19 +49,10 @@ Token Lexer::make(Tok kind, size_t start, int line, int col) const {
     return {kind, std::string_view(src_.text).substr(start, pos_ - start), line, col};
 }
 
-// 42, 5'67 (i67 literal), 5'u67 (u67 literal). Whether the width is in 1..128
-// is checked later in sema,
 Token Lexer::number() {
     size_t start = pos_;
     int l = line_, c = col_;
     while (is_digit(peek())) advance();
-    if (peek() == '\'') {
-        advance();
-        if (peek() == 'i' || peek() == 'u') advance();
-        if (!is_digit(peek()))
-            diags_.error(l, c, static_cast<int>(pos_ - start), "expected a bit width after '");
-        while (is_digit(peek())) advance();
-    }
     return make(Tok::IntLit, start, l, c);
 }
 

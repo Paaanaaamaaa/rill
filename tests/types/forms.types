@@ -1,0 +1,6 @@
+sq : i64 => i64
+n : u8
+msg : str
+t : any
+cmp : bool
+r : i64

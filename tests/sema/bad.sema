@@ -5,8 +5,6 @@
 (~! a 4)
 (def two (clause (a:arg b:arg) a:arg))
 (juxt two:fn 1)
-(<~ big:val 300'u8)
-(<~ w:val 5'0)
 (<~ q:val _)
 tests/sema/bad.rl:2:1: error: 'a' is already defined here
   a <~ 2
@@ -23,12 +21,6 @@ tests/sema/bad.rl:5:1: error: 'a' is not mutable, declare it with <~!
 tests/sema/bad.rl:7:1: error: 'two' takes 2 arguments but got 1
   two 1
   ^^^
-tests/sema/bad.rl:8:8: error: number does not fit in u8
-  big <~ 300'u8
-         ^^^^^^
-tests/sema/bad.rl:9:6: error: bit width must be between 1 and 128
-  w <~ 5'0
-       ^^^
-tests/sema/bad.rl:10:6: error: '_' only works as a pattern
+tests/sema/bad.rl:8:6: error: '_' only works as a pattern
   q <~ _
        ^
