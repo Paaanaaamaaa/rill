@@ -68,24 +68,33 @@ The compilation pipeline consists of:
 
 Rill compiles `.rill` source files into native x86-64 executables through a series of compiler stages.
 
-## Compilation Pipeline
-
 ```mermaid
 flowchart TD
-    A(["Source Code<br/>.rill"]) --> B["Lexer"]
-    B --> C["Layout Processing"]
-    C --> D["Parser & AST"]
-    D --> E["Semantic Analysis"]
-    E --> F["Type Inference"]
-    F --> G["Intermediate Representation<br/>IR"]
-    G --> H["x86-64 Code Generation"]
-    H --> I["Assembly & Linking"]
-    I --> J(["Native Executable"])
+    A(["Source Code<br/><code>.rill</code>"])
+    B["Lexer"]
+    C["Layout Processing"]
+    D["Parser & AST"]
+    E["Semantic Analysis"]
+    F["Type Inference"]
+    G["Intermediate Representation<br/><code>IR</code>"]
+    H["x86-64 Code Generation"]
+    I["Assembly & Linking"]
+    J(["Native Executable"])
 
-    classDef endpoint fill:#f1f5f9,stroke:,color:#0f172a,stroke-width:0px
-    class A,J endpoint
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+
+    style A fill:#e8f0fe,stroke:#4285f4,color:#174ea6
+    style J fill:#e6f4ea,stroke:#34a853,color:#137333
+    style G fill:#fef7e0,stroke:#f9ab00,color:#7f4f00
 ```
-
 
 
 ## Development Status
