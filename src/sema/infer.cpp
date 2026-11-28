@@ -237,6 +237,7 @@ private:
                 return t;
             }
             case NodeKind::Str:      return str_;
+            case NodeKind::Bool:     return bool_;
             case NodeKind::Name:     return use_name(n);
             case NodeKind::Bind:     return bind(n);
             case NodeKind::Monad:    return monad(n);

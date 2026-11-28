@@ -11,6 +11,7 @@ const char* tok_name(Tok t) {
         case Tok::Ident:   return "Ident";
         case Tok::IntLit:  return "IntLit";
         case Tok::StrLit:  return "StrLit";
+        case Tok::BoolLit: return "BoolLit";
 #define OP(name, text) case Tok::name: return #name;
 #include "lex/operators.def"
 #undef OP

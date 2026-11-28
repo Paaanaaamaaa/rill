@@ -8,7 +8,7 @@
 namespace rill {
 
 enum class NodeKind {
-    Int, Str, Name, Bind, Monad, Dyad, Juxt, List, Verb, Train,
+    Int, Str, Bool, Name, Bind, Monad, Dyad, Juxt, List, Verb, Train,
     Def, Clause, Block, Match, Arm,
     Orbit, Isomorph, Fixpoint, Quiesce, Manifold, Lattice, Field,
     Sig

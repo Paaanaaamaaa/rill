@@ -126,6 +126,14 @@ std::vector<Token> Lexer::run() {
             continue;
         }
         if (c == '"') { out.push_back(string_lit()); continue; }
+        if (c == '#' && (peek(1) == 't' || peek(1) == 'f') && !is_word_char(peek(2))) {
+            size_t start = pos_;
+            int l = line_, col = col_;
+            advance();
+            advance();
+            out.push_back(make(Tok::BoolLit, start, l, col));
+            continue;
+        }
         if (is_digit(c)) { out.push_back(number()); continue; }
         if (is_word_start(c)) { out.push_back(word()); continue; }
         Token t;

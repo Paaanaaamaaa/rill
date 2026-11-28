@@ -38,6 +38,7 @@ std::string dump(const Node& n, bool resolved) {
     switch (n.kind) {
         case NodeKind::Int:
         case NodeKind::Str:
+        case NodeKind::Bool:
             return self;
         case NodeKind::Name:
             if (n.tyform == 1) return "[" + self + "]";

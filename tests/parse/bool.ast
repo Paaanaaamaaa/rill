@@ -1,0 +1,3 @@
+(<~ a #t)
+(def f (clause (#t) 1) (clause (#f) 0))
+(<~ r (?| (> 3 2) (arm (#t) "yes") (arm (#f) "no")))

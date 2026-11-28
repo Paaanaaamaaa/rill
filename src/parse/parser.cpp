@@ -17,7 +17,7 @@ bool is_verb(Tok k) {
 }
 
 bool starts_atom(Tok k) {
-    return k == Tok::IntLit || k == Tok::StrLit || k == Tok::Ident ||
+    return k == Tok::IntLit || k == Tok::StrLit || k == Tok::BoolLit || k == Tok::Ident ||
            k == Tok::LParen || k == Tok::LBracket;
 }
 
@@ -166,6 +166,7 @@ NodePtr Parser::atom() {
     switch (cur().kind) {
         case Tok::IntLit: return node(NodeKind::Int, take());
         case Tok::StrLit: return node(NodeKind::Str, take());
+        case Tok::BoolLit: return node(NodeKind::Bool, take());
         case Tok::Ident:  return node(NodeKind::Name, take());
         case Tok::LParen: {
             take();
@@ -204,6 +205,7 @@ void Parser::patterns(Node& into) {
         Tok k = cur().kind;
         if (k == Tok::IntLit) into.kids.push_back(node(NodeKind::Int, take()));
         else if (k == Tok::StrLit) into.kids.push_back(node(NodeKind::Str, take()));
+        else if (k == Tok::BoolLit) into.kids.push_back(node(NodeKind::Bool, take()));
         else if (k == Tok::Ident) into.kids.push_back(node(NodeKind::Name, take()));
         else break;
     }

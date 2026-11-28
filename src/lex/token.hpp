@@ -11,6 +11,7 @@ enum class Tok {
     Ident,
     IntLit,
     StrLit,
+    BoolLit,
 #define OP(name, text) name,
 #include "lex/operators.def"
 #undef OP

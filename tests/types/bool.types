@@ -1,0 +1,6 @@
+a : bool
+b : bool
+c : bool
+d : bool
+r : i64
+f : bool => i64
